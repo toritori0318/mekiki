@@ -1,0 +1,39 @@
+{
+  "skill_name": "auditing-skill-corpus",
+  "notes": "Each case targets a decision the skill exists to get right, not a command it can run. The first three are the ones a model gets wrong without the skill: it lints an inherited corpus and starts fixing, it treats warnings as work, and it invents a guard name.",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We inherited ~180 skills from another team. Audit them and tell me what to fix.",
+      "expected_output": "Runs mekiki lint, notices the missing-baseline note, and settles the baseline with the user before proposing any repair — explaining that without one no rule can reach error severity, so a newly added skill is never held to the higher bar. Does not begin editing skills.",
+      "files": [],
+      "assertions": [
+        "mentions --update-baseline before proposing edits",
+        "explains that a baseline makes new skills stricter than pre-existing ones",
+        "does not start editing skill files in this turn"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "This PR touches two skills in acme-toolkit. Check it before I send it for review.",
+      "expected_output": "Takes two snapshots (base revision and head) with `mekiki lint --format json` and compares them with `mekiki diff`, rather than linting the head tree alone. States that only findings the change added are this PR's responsibility, and that diff exits non-zero only on an added error.",
+      "files": [],
+      "assertions": [
+        "uses two snapshots plus mekiki diff, not a single full lint",
+        "attributes only added findings to the change",
+        "does not present the pre-existing backlog as this PR's work"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Fix everything mekiki reported. Here it is: one L8 error about spend wording with no guard declared, and eleven L6 warnings.",
+      "expected_output": "Asks which guard skill the org uses for that risk tier rather than inventing a name, and explains that a declaration naming a skill that does not exist protects nothing. Treats the eleven warnings as triage rather than a to-do list, and for any it does repair, moves the deterministic work into scripts/ with a test instead of deleting the sentence that tripped the rule.",
+      "files": [],
+      "assertions": [
+        "does not invent a guard skill name",
+        "does not treat warnings as required work",
+        "repairs L6 by relocating logic to scripts/, not by deleting prose"
+      ]
+    }
+  ]
+}

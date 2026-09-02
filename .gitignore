@@ -1,0 +1,31 @@
+# Baseline: generated per environment via `mekiki lint --update-baseline`.
+# It lists the skill inventory of whatever corpus you point at, so it is not shared.
+baseline.json
+
+# Org-specific settings (guard skill names, detection patterns).
+# Copy config.example.json to config.json and edit.
+config.json
+
+# Atlas output: embeds every description in the inspected corpus.
+skill-atlas.html
+skill-catalog.html
+
+# Reference material kept out of the repository entirely (adoption records, name mapping).
+# Note: this is _reference/, not internal/ — the latter is a Go package directory.
+_reference/
+
+# Build output
+/mekiki
+dist/
+
+# OS
+.DS_Store
+
+# Claude Code local state
+.claude/
+
+# tmp
+tmp/
+
+# Python bytecode from scripts/
+__pycache__/

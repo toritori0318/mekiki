@@ -1,0 +1,1477 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mekiki — Skill Atlas</title>
+<style>
+/* ============================================================
+   Skill Atlas — an instrument panel for a skill corpus.
+   Board: named tiles grouped by plugin. Dots are unreadable at scale; names are not.
+   Palette: CVD-validated categorical set. Dark-first with a light theme.
+   Only plugin identity carries hue; state is carried by text and shape.
+   ============================================================ */
+:root {
+  color-scheme: dark;
+  --plane:#0d0d0d; --surface:#1a1a19; --surface2:#222220;
+  --ink:#ffffff; --ink2:#c3c2b7; --muted:#898781;
+  --hair:#2c2c2a; --axis:#383835;
+  --good:#0ca30c; --warning:#fab219; --critical:#d03b3b;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
+  --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
+  --ord1:#86b6ef; --ord2:#3987e5; --ord3:#256abf; --ord4:#184f95;
+  --glow:rgba(57,135,229,.14);
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --plane:#f9f9f7; --surface:#fcfcfb; --surface2:#f0efec;
+  --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+  --hair:#e1e0d9; --axis:#c3c2b7;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100;
+  --s5:#e87ba4; --s6:#008300; --s7:#4a3aa7; --s8:#e34948;
+  --glow:rgba(42,120,214,.10);
+}
+@media (prefers-color-scheme: light) {
+  :root:where(:not([data-theme="dark"])) {
+    color-scheme: light;
+    --plane:#f9f9f7; --surface:#fcfcfb; --surface2:#f0efec;
+    --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+    --hair:#e1e0d9; --axis:#c3c2b7;
+    --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100;
+    --s5:#e87ba4; --s6:#008300; --s7:#4a3aa7; --s8:#e34948;
+    --glow:rgba(42,120,214,.10);
+  }
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; background:var(--plane); color:var(--ink);
+  font:14px/1.65 "Avenir Next","Hiragino Sans","Noto Sans JP",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---- masthead ---- */
+.mast {
+  position:relative; padding:30px 28px 18px; overflow:hidden;
+  border-bottom:1px solid var(--hair);
+  background:
+    radial-gradient(1200px 300px at 18% -40%, var(--glow), transparent 70%),
+    repeating-linear-gradient(90deg, transparent 0 119px, var(--hair) 119px 120px);
+}
+.mast .eyebrow {
+  font-family:"SF Mono",Menlo,monospace; font-size:10px; letter-spacing:.32em;
+  text-transform:uppercase; color:var(--muted); margin-bottom:5px;
+}
+.mast h1 {
+  margin:0; font-family:"Avenir Next Condensed","Futura","Hiragino Sans",sans-serif;
+  font-weight:700; font-size:clamp(28px,4vw,44px); letter-spacing:.045em;
+  text-transform:uppercase; line-height:1.04;
+}
+.mast .viewname { font-family:"Avenir Next Condensed","Futura",sans-serif; font-weight:600;
+  font-size:15px; letter-spacing:.38em; color:var(--muted); margin-top:6px;
+  text-transform:uppercase; }
+.mast .sub { color:var(--muted); font-size:12px; margin-top:7px; }
+.mast .sub b { color:var(--ink2); font-weight:600; }
+.mast-tools { position:absolute; top:20px; right:24px; display:flex; gap:6px; }
+
+/* ---- legend (how to read the page) ----
+   The tier and the contract dots are the two marks a first-time reader cannot guess, and
+   explaining them in prose next to every gauge would crowd the page. One panel instead. */
+#legend {
+  position:fixed; inset:0; z-index:70; display:none;
+  background:color-mix(in srgb, var(--plane) 72%, transparent);
+  align-items:flex-start; justify-content:center; padding:6vh 18px;
+  overflow-y:auto;
+}
+#legend.open { display:flex; }
+#legend .sheet {
+  position:relative; width:min(620px,100%); background:var(--surface);
+  border:1px solid var(--axis); border-radius:12px; padding:20px 22px 22px;
+  box-shadow:0 30px 80px rgba(0,0,0,.45);
+}
+#legend h2 { margin:0 0 3px; font-family:"Avenir Next Condensed","Futura",sans-serif;
+             font-size:20px; letter-spacing:.06em; text-transform:uppercase; }
+#legend .lead { color:var(--muted); font-size:12px; margin-bottom:14px; }
+#legend h4 { margin:15px 0 6px; font-size:10px; letter-spacing:.16em; text-transform:uppercase;
+             color:var(--muted); }
+#legend table { width:100%; border-collapse:collapse; background:none; border:none; }
+#legend td { border:none; border-bottom:1px solid var(--hair); padding:5px 8px 5px 0;
+             font-size:12.5px; vertical-align:top; }
+#legend tr:last-child td { border-bottom:none; }
+#legend td.g { width:74px; white-space:nowrap; font-family:"SF Mono",Menlo,monospace;
+               font-size:11.5px; color:var(--ink2); }
+#legend td.n { width:96px; font-weight:600; font-size:12px; }
+#legend .why { color:var(--muted); font-size:11.5px; margin-top:7px; line-height:1.7; }
+#legend .x { position:absolute; top:14px; right:14px; }
+#legend code { font-family:"SF Mono",Menlo,monospace; font-size:11.5px; }
+
+.ghostbtn {
+  background:transparent; border:1px solid var(--hair); color:var(--ink2);
+  border-radius:7px; padding:5px 12px; font-size:12px; cursor:pointer;
+  font-family:inherit; transition:border-color .15s, color .15s;
+}
+.ghostbtn:hover { border-color:var(--muted); color:var(--ink); }
+
+/* ---- gauges ---- */
+.notes:not(:empty) { padding:8px 28px; border-bottom:1px solid var(--hair);
+  background:var(--surface); }
+.notes div { font-family:"SF Mono",Menlo,monospace; font-size:10.5px; color:var(--muted); }
+.deck { display:grid; gap:1px; background:var(--hair); border-bottom:1px solid var(--hair);
+        grid-template-columns:repeat(auto-fit,minmax(148px,1fr)); }
+.gauge { background:var(--surface); padding:14px 18px 12px; }
+.gauge .v { font-family:"SF Mono",Menlo,monospace; font-size:28px; font-weight:600;
+            line-height:1; font-variant-numeric:tabular-nums; }
+.gauge .v small { font-size:13px; color:var(--muted); font-weight:400; }
+.gauge .l { margin-top:6px; font-size:10.5px; letter-spacing:.13em; text-transform:uppercase;
+            color:var(--muted); }
+.gauge.crit .v { color:var(--critical); }
+.gauge.warn .v { color:var(--warning); }
+.tierbar { display:flex; height:10px; border-radius:5px; overflow:hidden; gap:2px; margin-top:8px; }
+.tierbar i { display:block; }
+.tierlab { display:flex; gap:10px; margin-top:5px; font-size:10px; color:var(--muted);
+           font-family:"SF Mono",Menlo,monospace; }
+.tierlab b { color:var(--ink2); font-weight:600; }
+
+/* ---- control row ---- */
+.controls {
+  display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+  padding:11px 24px; border-bottom:1px solid var(--hair); background:var(--plane);
+  position:sticky; top:0; z-index:30;
+}
+.controls input[type=text], .controls select {
+  padding:7px 11px; border:1px solid var(--hair); border-radius:7px;
+  background:var(--surface); color:var(--ink); font-size:13px; font-family:inherit;
+}
+.controls input[type=text] { width:240px; }
+.controls input[type=text]:focus, .controls select:focus { outline:1px solid var(--s1); }
+.controls label { font-size:12px; color:var(--ink2); display:flex; align-items:center; gap:5px; }
+.count { color:var(--muted); font-size:11px; font-family:"SF Mono",Menlo,monospace; }
+.tabs { display:flex; gap:2px; margin-right:6px; }
+.tab {
+  font-family:"Avenir Next Condensed","Futura",sans-serif; text-transform:uppercase;
+  letter-spacing:.1em; font-size:13px; padding:6px 16px; cursor:pointer;
+  border:1px solid var(--hair); background:var(--surface); color:var(--muted);
+}
+.tab:first-child { border-radius:7px 0 0 7px; }
+.tab:last-child { border-radius:0 7px 7px 0; }
+.tab.on { color:var(--ink); border-color:var(--axis); background:var(--surface2); }
+
+/* ---- board (named tiles) ---- */
+#board { padding:22px 24px 70px; }
+.psec { margin-bottom:26px; }
+.phead {
+  display:flex; align-items:baseline; gap:12px; margin-bottom:10px;
+  border-bottom:1px solid var(--hair); padding-bottom:7px;
+}
+.phead .pdot { width:10px; height:10px; border-radius:50%; align-self:center; }
+.phead h3 { margin:0; font-family:"SF Mono",Menlo,monospace; font-size:16px; letter-spacing:.02em; }
+.phead .pn { color:var(--muted); font-size:11.5px; font-family:"SF Mono",Menlo,monospace; }
+.tiles { display:grid; gap:8px; grid-template-columns:repeat(auto-fill,minmax(248px,1fr)); }
+.tile {
+  position:relative; background:var(--surface); border:1px solid var(--hair);
+  border-radius:9px; padding:9px 11px 8px; cursor:pointer; overflow:hidden;
+  border-top:3px solid var(--pc, var(--axis));
+  transition:transform .12s, border-color .12s, box-shadow .12s;
+}
+.tile:hover { transform:translateY(-2px); border-color:var(--muted);
+              box-shadow:0 8px 22px rgba(0,0,0,.28); }
+.tile.hubbed { background:linear-gradient(180deg,
+               color-mix(in srgb, var(--pc) 8%, var(--surface)), var(--surface) 65%); }
+.tile .nm {
+  font-family:"SF Mono",Menlo,monospace; font-size:12px; font-weight:600; line-height:1.45;
+  word-break:break-all; padding-right:34px;
+}
+.tile .ds {
+  margin-top:5px; font-size:11.5px; line-height:1.55; color:var(--ink2);
+  display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;
+  min-height:3.2em;
+}
+.tile .meta {
+  display:flex; align-items:center; gap:8px; margin-top:6px;
+  font-family:"SF Mono",Menlo,monospace; font-size:10.5px; color:var(--muted);
+}
+.tile .meta .e { color:var(--critical); font-weight:700; }
+.tile .meta .w { color:var(--warning); }
+.tile .meta .hub { color:var(--ink2); }
+/* Delta markers. Present in the DOM only when the page was built with --base; the catalog
+   column is in the markup either way, so .diffcol hides it until diffmode is set. */
+.dnew { color:var(--pc,var(--ink2)); font-weight:700; border:1px solid currentColor;
+        border-radius:3px; padding:0 3px; font-size:9.5px; }
+.dres { color:var(--good); font-weight:700; }
+.diffcol { display:none; }
+.diffmode .diffcol { display:table-cell; }
+.tile.orch {
+  border:1px dashed color-mix(in srgb, var(--pc) 55%, var(--hair));
+  border-top:3px solid var(--pc);
+  background:
+    repeating-linear-gradient(135deg, transparent 0 9px,
+      color-mix(in srgb, var(--pc) 5%, transparent) 9px 18px),
+    var(--surface);
+}
+.wfband {
+  display:inline-flex; align-items:center; gap:5px; margin-bottom:6px;
+  font-family:"SF Mono",Menlo,monospace; font-size:9.5px; font-weight:700;
+  letter-spacing:.14em; color:var(--ink2);
+  background:color-mix(in srgb, var(--pc) 16%, var(--surface));
+  border-radius:4px; padding:2px 8px;
+}
+.wfband::before { content:"▸▸"; color:var(--pc); letter-spacing:0; }
+.wfchain {
+  margin-top:6px; padding-top:5px; border-top:1px dashed var(--hair);
+  font-family:"SF Mono",Menlo,monospace; font-size:10px; color:var(--muted);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.tile.sel { outline:2px solid var(--ink); }
+.tile.dim { opacity:.22; }
+.tier { font-family:"SF Mono",Menlo,monospace; font-size:10.5px; letter-spacing:1.2px; }
+.tier b { color:var(--ink); font-weight:400; }
+
+/* ---- flow (workflow pipelines) ----
+   Deliberate layout, not a force simulation: a workflow is an ordered pipeline, so it is
+   drawn as one. Detail lives inside the cards rather than on the connectors, which is what
+   keeps a twenty-phase workflow readable where a relationship graph turns into a hairball. */
+#view-flow { padding:16px 24px 70px; display:grid; grid-template-columns:252px minmax(0,1fr);
+             gap:16px; align-items:start; }
+@media (max-width:960px){ #view-flow { grid-template-columns:1fr; } }
+.wfrail { border:1px solid var(--hair); border-radius:12px; background:var(--surface);
+          overflow:hidden; position:sticky; top:calc(var(--ctrl-h,56px) + 14px); }
+.wfrail h4 { margin:0; padding:10px 13px; font-size:10px; letter-spacing:.16em;
+             text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--hair); }
+.wfitem { padding:9px 13px; border-bottom:1px solid var(--hair); cursor:pointer;
+          border-left:3px solid transparent; }
+.wfitem:last-child { border-bottom:none; }
+.wfitem:hover { background:var(--surface2); }
+.wfitem.on { background:var(--surface2); border-left-color:var(--pc,var(--s1)); }
+.wfitem .n { font-family:"SF Mono",Menlo,monospace; font-size:12px; font-weight:600;
+             word-break:break-all; }
+.wfitem .m { font-family:"SF Mono",Menlo,monospace; font-size:10px; color:var(--muted);
+             margin-top:2px; }
+.wfhead { border:1px solid var(--hair); border-radius:12px; background:var(--surface);
+          padding:14px 16px; margin-bottom:14px; border-top:3px solid var(--pc,var(--axis)); }
+.wfhead h3 { margin:0; font-family:"SF Mono",Menlo,monospace; font-size:17px;
+             word-break:break-all; }
+.wfhead .p { font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--muted);
+             font-family:"SF Mono",Menlo,monospace; }
+.wfhead .ds { font-size:12.5px; color:var(--ink2); margin-top:7px; line-height:1.7; }
+.wfhead .facts { display:flex; flex-wrap:wrap; gap:14px; margin-top:9px;
+                 font-family:"SF Mono",Menlo,monospace; font-size:11px; color:var(--muted); }
+.wfhead .facts b { color:var(--ink2); font-weight:600; }
+
+/* the pipeline itself — a canvas holding one workflow, pannable and zoomable.
+   The scope is deliberately one workflow: the whole corpus on a canvas is the hairball
+   this view exists to avoid. Inside a single pipeline, panning is what a twenty-phase
+   flow needs, because wrapping it into rows breaks the left-to-right reading. */
+.fcanvas {
+  position:relative; height:clamp(340px,52vh,560px); overflow:hidden;
+  border:1px solid var(--hair); border-radius:12px; background-color:var(--plane);
+  background-image:radial-gradient(var(--hair) 1px, transparent 1px);
+  background-size:22px 22px; cursor:grab; touch-action:none;
+}
+.fcanvas.panning { cursor:grabbing; }
+.fscene { position:absolute; top:0; left:0; transform-origin:0 0; }
+.fedges { position:absolute; top:0; left:0; overflow:visible; pointer-events:none; }
+.fedges .ed { fill:none; stroke:var(--axis); stroke-width:1.6; }
+.fedges .ed.data { stroke:var(--s1); }
+.fedges .ed.seq { stroke-dasharray:4 4; }
+.fnode { position:absolute; }
+.fnode.dragging { z-index:5; }
+.fnode.dragging .pcard { box-shadow:0 16px 40px rgba(0,0,0,.4); border-color:var(--muted); }
+.elabel {
+  position:absolute; transform:translate(-50%,-50%); max-width:150px;
+  font-family:"SF Mono",Menlo,monospace; font-size:10px; color:var(--ink2);
+  background:var(--surface); border:1px solid var(--hair); border-radius:4px;
+  padding:1px 6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  pointer-events:auto; cursor:default;
+}
+.elabel.multi { border-style:dashed; }
+.ftool { position:absolute; right:10px; top:10px; display:flex; gap:5px; z-index:4; }
+.ftool .ghostbtn { padding:3px 9px; background:var(--surface); }
+.fhint { position:absolute; left:12px; bottom:10px; font-size:10px; color:var(--muted);
+         font-family:"SF Mono",Menlo,monospace; pointer-events:none; }
+.fzoom { position:absolute; right:12px; bottom:10px; font-size:10px; color:var(--muted);
+         font-family:"SF Mono",Menlo,monospace; pointer-events:none; }
+.pcard {
+  width:250px; background:var(--surface); border:1px solid var(--hair); border-radius:10px;
+  padding:10px 12px 9px; cursor:pointer; border-top:3px solid var(--pc,var(--axis));
+  display:flex; flex-direction:column; transition:border-color .12s, box-shadow .12s;
+}
+.pcard:hover { border-color:var(--muted); box-shadow:0 8px 22px rgba(0,0,0,.26); }
+.pcard.sel { outline:2px solid var(--ink); }
+.pcard.missing { border-style:dashed; border-top-color:var(--critical); cursor:default; }
+.pcard .ph { font-family:"SF Mono",Menlo,monospace; font-size:9.5px; letter-spacing:.16em;
+             color:var(--muted); text-transform:uppercase; }
+.pcard .sk { font-family:"SF Mono",Menlo,monospace; font-size:13px; font-weight:600;
+             word-break:break-all; margin-top:1px; }
+.pcard .ds { font-size:11px; line-height:1.55; color:var(--ink2); margin-top:5px;
+             display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+             overflow:hidden; }
+.pcard .meta { display:flex; align-items:center; gap:8px; margin-top:7px;
+               font-family:"SF Mono",Menlo,monospace; font-size:10.5px; color:var(--muted); }
+.pcard .meta .e { color:var(--critical); font-weight:700; }
+.pcard .meta .w { color:var(--warning); }
+.io { margin-top:7px; padding-top:6px; border-top:1px dashed var(--hair);
+      font-family:"SF Mono",Menlo,monospace; font-size:10px; }
+.io .lab { color:var(--muted); letter-spacing:.1em; }
+.io .art { display:inline-block; background:var(--surface2); border:1px solid var(--hair);
+           border-radius:4px; padding:0 6px; margin:2px 3px 0 0; color:var(--ink2);
+           max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+           vertical-align:bottom; }
+.io .art.unmet { border-color:var(--warning); color:var(--warning); }
+.io .art.dead { border-color:var(--axis); color:var(--muted); }
+.io .art.inferred { border-style:dashed; }
+.pcard .calls { margin-top:6px; font-family:"SF Mono",Menlo,monospace; font-size:10px;
+                color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.prow { display:flex; align-items:center; gap:9px; margin:2px 0 10px;
+        font-family:"SF Mono",Menlo,monospace; font-size:10px; color:var(--muted); }
+.prow::before, .prow::after { content:""; flex:1; border-top:1px dashed var(--hair); }
+/* runbook: the pipeline read top to bottom, one block per phase.
+   The canvas answers "what is the shape", the ledger answers "what moves"; this answers
+   "what does each phase actually do", which is the question the two-line card clamp on the
+   canvas cannot. Non-goals is carried here on purpose: when a reader wonders where some
+   step happens, the boundary of the neighbouring phase is usually the answer. */
+.rbtools { float:right; display:flex; gap:6px; }
+.rbtools .ghostbtn { padding:2px 9px; font-size:11px; text-transform:none; letter-spacing:normal; }
+.rbstep { display:grid; grid-template-columns:52px minmax(0,1fr); gap:0 14px;
+          padding:13px 0 15px; border-top:1px solid var(--hair); }
+.rbstep:first-of-type { border-top:none; padding-top:3px; }
+.rbnum { position:relative; font-family:"SF Mono",Menlo,monospace; font-size:9.5px;
+         letter-spacing:.14em; color:var(--muted); text-transform:uppercase; }
+.rbnum b { display:block; font-size:20px; line-height:1.15; font-weight:600; color:var(--ink2); }
+.rbstep:not(:last-of-type) .rbnum::after {
+  content:""; position:absolute; left:10px; top:46px; bottom:-19px; width:1px;
+  background:var(--hair);
+}
+.rbhead { display:flex; align-items:baseline; flex-wrap:wrap; gap:8px; }
+.rbname { font-family:"SF Mono",Menlo,monospace; font-size:13.5px; font-weight:600;
+          cursor:pointer; word-break:break-all; }
+.rbname:hover { text-decoration:underline; }
+.rbstep.missing .rbname { color:var(--critical); cursor:default; text-decoration:none; }
+.rbmeta { font-family:"SF Mono",Menlo,monospace; font-size:10.5px; color:var(--muted); }
+.rbmeta .e { color:var(--critical); font-weight:700; }
+.rbmeta .w { color:var(--warning); }
+.rbdesc { font-size:12.5px; line-height:1.8; color:var(--ink); margin-top:4px; }
+.rbrow { display:grid; grid-template-columns:104px minmax(0,1fr); gap:3px 10px; margin:7px 0 0; }
+.rbrow dt { font-family:"SF Mono",Menlo,monospace; font-size:9.5px; letter-spacing:.12em;
+            text-transform:uppercase; color:var(--muted); padding-top:3px; }
+.rbrow dd { margin:0; font-size:12px; line-height:1.65; color:var(--ink2); word-break:break-word; }
+.rbrow dd .src { color:var(--muted); font-size:10.5px;
+                 font-family:"SF Mono",Menlo,monospace; margin-left:5px; }
+.rbrow dd.gap { color:var(--muted); font-style:italic; }
+.rbrow dd .a { font-family:"SF Mono",Menlo,monospace; font-size:11.5px; }
+.wfledger { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:6px; }
+@media (max-width:900px){ .wfledger { grid-template-columns:1fr; } }
+.artrow { display:flex; gap:8px; font-size:11.5px; padding:3px 0;
+          border-bottom:1px solid var(--hair); }
+.artrow:last-child { border-bottom:none; }
+.artrow .nm { font-family:"SF Mono",Menlo,monospace; flex:1; word-break:break-all; }
+.artrow .fl { font-family:"SF Mono",Menlo,monospace; font-size:10px; white-space:nowrap;
+              color:var(--muted); }
+.artrow .fl.warn { color:var(--warning); }
+.wfempty { border:1px dashed var(--hair); border-radius:12px; padding:44px 34px;
+           text-align:center; color:var(--ink2); font-size:13.5px; }
+.wfempty .why { color:var(--muted); font-size:12px; margin-top:8px; line-height:1.8; }
+.wfempty code { font-family:"SF Mono",Menlo,monospace; font-size:11.5px; }
+
+/* ---- dossier (right panel) ---- */
+#dossier {
+  position:fixed; top:0; right:0; width:min(560px,94vw); height:100vh; z-index:50;
+  background:var(--surface); border-left:1px solid var(--axis);
+  transform:translateX(102%); transition:transform .28s cubic-bezier(.2,.8,.2,1);
+  overflow-y:auto; box-shadow:-24px 0 60px rgba(0,0,0,.35);
+}
+#dossier.open { transform:none; }
+#dossier .dhead {
+  position:sticky; top:0; background:var(--surface); z-index:2;
+  padding:18px 22px 12px; border-bottom:1px solid var(--hair);
+}
+#dossier .dhead .p { font-size:10px; letter-spacing:.22em; text-transform:uppercase;
+                     color:var(--muted); font-family:"SF Mono",Menlo,monospace; }
+#dossier .dhead h2 { margin:2px 0 0; font-family:"SF Mono",Menlo,monospace;
+                     font-size:19px; word-break:break-all; }
+#dossier .dhead .x { position:absolute; top:14px; right:14px; }
+#dossier .dbody { padding:14px 22px 40px; }
+#dossier .dlead { margin:2px 0 14px; font-size:13.5px; line-height:1.8; color:var(--ink);
+  border-left:3px solid var(--axis); padding-left:12px; }
+
+/* ---- shared panels / catalog ---- */
+.panel { background:var(--surface); border:1px solid var(--hair); border-radius:10px;
+         padding:13px 15px; }
+.panel h4 { margin:0 0 9px; font-size:10.5px; color:var(--muted);
+            letter-spacing:.16em; text-transform:uppercase; }
+.panel + .panel { margin-top:10px; }
+.kv { margin:0; }
+.kv dt { font-weight:600; font-size:12px; margin-top:7px; color:var(--ink2); }
+.kv dd { margin:0 0 2px; font-size:13px; word-break:break-word; }
+.chip {
+  display:inline-block; background:var(--surface2); border:1px solid var(--hair);
+  border-radius:12px; padding:1px 10px; margin:2px 4px 2px 0; font-size:12px;
+  cursor:pointer; color:var(--ink2); font-family:"SF Mono",Menlo,monospace;
+}
+.chip:hover { border-color:var(--muted); color:var(--ink); }
+.note { color:var(--muted); font-size:11px; font-style:italic; }
+.err { color:var(--critical); font-weight:600; }
+.wrn { color:var(--warning); }
+.ok { color:var(--good); }
+.zero { color:var(--muted); }
+.finding { font-size:12px; margin:3px 0; }
+.finding .rule { font-family:"SF Mono",Menlo,monospace; color:var(--muted); }
+
+main { padding:20px 24px 60px; }
+table { width:100%; border-collapse:separate; border-spacing:0; background:var(--surface);
+        border:1px solid var(--hair); border-radius:10px; }
+th, td { padding:8px 11px; border-bottom:1px solid var(--hair); text-align:left;
+         font-size:13px; vertical-align:top; }
+/* sticky offset comes from the control row's measured height: JS sets --ctrl-h, because a
+   fixed value drifts as soon as the row wraps */
+th { background:var(--surface2); position:sticky; top:var(--ctrl-h, 56px); cursor:pointer;
+     z-index:5; white-space:nowrap; font-size:10.5px; letter-spacing:.1em;
+     text-transform:uppercase; color:var(--muted); }
+tr:last-child td { border-bottom:none; }
+tr.row { cursor:pointer; }
+tr.row:hover { background:color-mix(in srgb, var(--s1) 7%, var(--surface)); }
+td .pdot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:7px; }
+td b.skname { font-family:"SF Mono",Menlo,monospace; font-weight:600; font-size:12.5px; }
+.num { font-family:"SF Mono",Menlo,monospace; font-variant-numeric:tabular-nums; }
+.dots span { display:inline-block; width:8px; height:8px; border-radius:2px;
+             margin-right:2px; background:var(--hair); }
+.dots span.on { background:var(--good); }
+.badges span { display:inline-block; font-size:10px; border:1px solid var(--hair);
+  border-radius:4px; padding:0 5px; margin-right:3px; color:var(--muted);
+  font-family:"SF Mono",Menlo,monospace; }
+.badges span.on { border-color:var(--good); color:var(--good); }
+.detail { display:none; background:var(--plane); }
+.detail.open { display:table-row; }
+.detail td { padding:14px 16px; }
+.dgrid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+@media (max-width:900px){ .dgrid{ grid-template-columns:1fr; } }
+.panel.flow { grid-column:1 / -1; }
+.flowsrc { font-size:10px; padding:1px 8px; border-radius:10px; margin-left:8px;
+           letter-spacing:normal; text-transform:none; }
+.flowsrc.declared { border:1px solid var(--good); color:var(--good); }
+.flowsrc.heuristic { border:1px solid var(--warning); color:var(--warning); }
+.steps { display:flex; flex-wrap:wrap; align-items:stretch; gap:5px; }
+.step { background:var(--surface2); border:1px solid var(--hair); border-radius:9px;
+        padding:8px 11px; min-width:150px; max-width:230px; }
+.step .ph { font-size:9.5px; color:var(--muted); font-family:"SF Mono",Menlo,monospace; }
+.step .sk { font-weight:600; cursor:pointer; font-size:12.5px; word-break:break-all;
+            font-family:"SF Mono",Menlo,monospace; }
+.step .sk:hover { text-decoration:underline; }
+.step .io { font-size:11px; color:var(--muted); margin-top:3px; }
+.step .io b { color:var(--ink2); font-weight:600; }
+.arrow { align-self:center; color:var(--muted); font-size:16px; }
+.orch-tag { font-size:9.5px; border:1px dashed var(--axis); color:var(--ink2);
+            border-radius:4px; padding:0 5px; margin-left:6px;
+            font-family:"SF Mono",Menlo,monospace; }
+.desc { color:var(--ink2); font-size:12.5px; }
+::selection { background:var(--s1); color:#fff; }
+</style>
+</head>
+<body>
+
+<header class="mast">
+  <div class="eyebrow">A discerning eye for agent skills / dependency &amp; contract observatory</div>
+  <h1>MEKIKI</h1>
+  <div class="viewname">SKILL ATLAS</div>
+  <div class="sub" id="mastsub"></div>
+  <div class="mast-tools">
+    <button class="ghostbtn" id="legendbtn" title="How to read this page">? legend</button>
+    <button class="ghostbtn" id="themebtn" title="Toggle theme">◐ theme</button>
+  </div>
+</header>
+
+<div class="notes" id="runnotes"></div>
+<div class="deck" id="deck"></div>
+
+<div class="controls">
+  <div class="tabs">
+    <div class="tab on" id="tab-board">Board</div>
+    <div class="tab" id="tab-flow">Flow</div>
+    <div class="tab" id="tab-cat">Catalog</div>
+  </div>
+  <input type="text" id="q" placeholder="Search name, description or dependency">
+  <select id="f-plugin"><option value="">All plugins</option></select>
+  <select id="f-tier">
+    <option value="">All tiers</option>
+    <option value="0">Tier 0</option><option value="1">Tier 1</option>
+    <option value="2">Tier 2</option><option value="3">Tier 3</option>
+  </select>
+  <label><input type="checkbox" id="f-err"> has errors</label>
+  <label><input type="checkbox" id="f-hub"> depended on</label>
+  <label><input type="checkbox" id="f-orch"> orchestrators</label>
+  <span class="count" id="count"></span>
+</div>
+
+<section id="view-board"><div id="board"></div></section>
+
+<section id="view-flow" style="display:none">
+  <aside class="wfrail"><h4 id="wfrailhead">Workflows</h4><div id="wflist"></div></aside>
+  <div id="wfmain"></div>
+</section>
+
+
+<section id="view-cat" style="display:none">
+<main>
+<table>
+  <thead><tr>
+    <th data-k="plugin">Plugin</th>
+    <th data-k="name">Skill</th>
+    <th data-k="tier">Tier</th>
+    <th>Contract</th>
+    <th data-k="deps">deps out</th>
+    <th data-k="depended">deps in</th>
+    <th>assets</th>
+    <th data-k="errors">err</th>
+    <th data-k="warns">warn</th>
+    <th data-k="diff_added_err" class="diffcol" title="errors this change added">&Delta; err</th>
+  </tr></thead>
+  <tbody id="rows"></tbody>
+</table>
+</main>
+</section>
+
+<aside id="legend" aria-label="How to read this page">
+  <div class="sheet">
+    <button class="ghostbtn x" onclick="closeLegend()">✕ close</button>
+    <h2>How to read this</h2>
+    <div class="lead">Two marks carry most of the meaning: the tier and the contract dots.</div>
+
+    <h4>Maturity tier — cumulative, each level measured by rules</h4>
+    <table>
+      <tr><td class="g">○○○</td><td class="n">T0 exists</td>
+          <td>Either the basics carry an error (name, description, lifecycle wording) or the
+              Contract is not complete.</td></tr>
+      <tr><td class="g">●○○</td><td class="n">T1 declared</td>
+          <td>Basics clean <b>and</b> all six Contract entries present — the minimum for a
+              new skill.</td></tr>
+      <tr><td class="g">●●○</td><td class="n">T2 safe</td>
+          <td>Nothing unsafe left: no arithmetic in prose, guards actually invoked, scripts
+              tested, billable work not model-startable.</td></tr>
+      <tr><td class="g">●●●</td><td class="n">T3 verified</td>
+          <td>Both official eval formats present — output quality and trigger accuracy — and,
+              where a run was recorded in <code>evals/results.json</code>, it passed.</td></tr>
+    </table>
+    <div class="why">Nothing applicable counts as satisfied — a knowledge skill with nothing
+      to guard reaches T2, because having nothing to guard is a safe state. The tier is a
+      headline; per-axis truth is in the badges below.</div>
+
+    <h4>Contract — the six dots, filled when the entry is written</h4>
+    <table>
+      <tr><td class="n">Trigger</td><td>when this skill should run</td></tr>
+      <tr><td class="n">Inputs</td><td>what it needs, and where that comes from</td></tr>
+      <tr><td class="n">Preconditions</td><td>what must already be true</td></tr>
+      <tr><td class="n">Outputs</td><td>what it writes</td></tr>
+      <tr><td class="n">Postconditions</td><td>how "done" is judged</td></tr>
+      <tr><td class="n">Non-goals</td><td>what it deliberately does not do, and which skill
+          owns that instead</td></tr>
+    </table>
+    <div class="why">Non-goals is the load-bearing one: it is what stops a skill reaching
+      into the next one's work.</div>
+
+    <h4>Badges and marks</h4>
+    <table>
+      <tr><td class="g">scr test<br>ref×N eval</td>
+          <td>the skill ships <code>scripts/</code>, tests, N files under
+              <code>references/</code>, <code>evals/</code>. Lit when present.</td></tr>
+      <tr><td class="g">⇑N</td><td>N other skills depend on this one — a hub</td></tr>
+      <tr><td class="g">3E 5W</td><td>lint errors and warnings on this skill</td></tr>
+      <tr><td class="g">▸▸ band</td><td>a workflow skill; the band opens it in the Flow view</td></tr>
+    </table>
+
+    <h4>In the Flow view</h4>
+    <table>
+      <tr><td class="g">in ←</td><td>amber artifact: no earlier phase produces it, so it
+          arrives from outside the pipeline</td></tr>
+      <tr><td class="g">out →</td><td>grey artifact: no later phase consumes it — a final
+          deliverable, or a dead output</td></tr>
+      <tr><td class="g">red card</td><td>the workflow delegates to a skill that is not
+          installed here; the pipeline breaks at that phase</td></tr>
+    </table>
+  </div>
+</aside>
+
+<aside id="dossier" aria-label="Skill detail">
+  <div class="dhead">
+    <div class="p" id="dplugin"></div>
+    <h2 id="dname"></h2>
+    <button class="ghostbtn x" onclick="closeDossier()">✕ close</button>
+  </div>
+  <div class="dbody" id="dbody"></div>
+</aside>
+
+<script>
+const DATA = /*__DATA__*/null;
+const SKILLS = DATA.skills;
+// DIFF is present only when the page was built with --base. Every delta marker below is
+// gated on it, so a page built without one is byte-for-byte what it always was.
+const DIFF = DATA.diff || null;
+const byKey = Object.fromEntries(SKILLS.map(s => [s.key, s]));
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c =>
+  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+// Values handed to inline handlers travel by index, never as string literals. esc() is an
+// HTML escaper, and the browser decodes HTML entities in an attribute *before* the JS parser
+// runs — so a corpus-controlled name (a directory name reaches s.key verbatim) interpolated
+// into onclick="fn('...')" could close the quote and run code. REF[n] keeps every
+// interpolation numeric. A test on the Go side pins the invariant.
+const REF = [];
+const REFIDX = new Map();
+const ref = v => { if (!REFIDX.has(v)) REFIDX.set(v, REF.push(v) - 1); return REFIDX.get(v); };
+const CITEMS = ["Trigger","Inputs","Preconditions","Outputs","Postconditions","Non-goals"];
+const PLUGINS = [...new Set(SKILLS.map(s=>s.plugin))].sort();
+const SLOTS = ["--s1","--s2","--s3","--s4","--s5","--s6","--s7","--s8"];
+const pcolor = p => `var(${SLOTS[PLUGINS.indexOf(p) % SLOTS.length]})`;
+
+let sortKey="errors", sortDesc=true, activeTab="board", selKey=null;
+
+/* ---- dependency graph (used only for the dossier trace; no edges are drawn on the board) ---- */
+const nameKeys = {};
+SKILLS.forEach(s=>{ (nameKeys[s.name] ||= []).push(s.key); });
+const outN={}, inN={};
+SKILLS.forEach(s=>{
+  const tgt=new Set();
+  [...s.requires,...s.depends_on,...s.mentions,...s.flow.map(e=>e.skill)]
+    .forEach(n=>(nameKeys[n]||[]).forEach(k=>{ if(k!==s.key) tgt.add(k); }));
+  outN[s.key]=tgt;
+  tgt.forEach(k=>{ (inN[k] ||= new Set()).add(s.key); });
+});
+function reach(start,adj){ const seen=new Set([start]); const st=[start];
+  while(st.length){ const v=st.pop(); [...(adj[v]||[])].forEach(w=>{
+    if(!seen.has(w)){ seen.add(w); st.push(w); } }); } seen.delete(start); return seen; }
+
+/* ---- gauges ---- */
+function estTokens(t){ let c=0; for(const ch of t){ const o=ch.codePointAt(0);
+  if((o>=0x3000&&o<=0x30FF)||(o>=0x4E00&&o<=0x9FFF)||(o>=0xFF00&&o<=0xFFEF)||(o>=0x3400&&o<=0x4DBF)) c++; }
+  return Math.floor(c*6/5) + Math.floor(([...t].length-c)/4); }
+function deck(){
+  const t=[0,0,0,0]; let e=0,w=0,orch=0,cat=0;
+  SKILLS.forEach(s=>{ t[s.tier]++; e+=s.errors; w+=s.warns;
+    if(s.is_orchestrator)orch++; cat+=estTokens(s.desc||""); });
+  const tierSeg=["--ord1","--ord2","--ord3","--ord4"].map((v,i)=>
+    `<i style="background:var(${v});flex:${Math.max(t[i],0.001)}" title="Tier ${i}: ${t[i]}"></i>`).join("");
+  const tierLab=t.map((n,i)=>`<span>T${i} <b>${n}</b></span>`).join("");
+  document.getElementById("deck").innerHTML=`
+    <div class="gauge"><div class="v">${SKILLS.length}</div><div class="l">skills</div></div>
+    <div class="gauge"><div class="v">${PLUGINS.length}</div><div class="l">plugins</div></div>
+    <div class="gauge ${e?"crit":""}"><div class="v">${e}</div><div class="l">errors</div></div>
+    <div class="gauge ${w?"warn":""}"><div class="v">${w}</div><div class="l">warnings</div></div>
+    <div class="gauge"><div class="v">${orch}</div><div class="l">orchestrators</div></div>
+    <div class="gauge"><div class="v">${(cat/1000).toFixed(1)}<small>k tok</small></div>
+      <div class="l">always-on catalog cost (est.)</div></div>
+    <div class="gauge" style="min-width:190px"><div class="l" style="margin-top:0">tier distribution</div>
+      <div class="tierbar">${tierSeg}</div><div class="tierlab">${tierLab}</div></div>`;
+  document.getElementById("mastsub").innerHTML=
+    `<b>${SKILLS.length}</b> skills / <b>${PLUGINS.length}</b> plugins — `+
+    (DIFF
+      ? `against the base snapshot: <b class="${DIFF.added_errors?"err":""}">+${DIFF.added_errors}</b> errors added, `
+        + `<b>${DIFF.resolved}</b> resolved, <b>${DIFF.new_skills.length}</b> new `
+        + `and <b>${DIFF.removed_skills.length}</b> removed skills`
+      : `dependencies, I/O contracts, tiers and lint findings on one page`);
+  if(DIFF) document.documentElement.classList.add("diffmode");
+  const sel=document.getElementById("f-plugin");
+  PLUGINS.forEach(p=>sel.insertAdjacentHTML("beforeend",`<option>${esc(p)}</option>`));
+  // Run notes (missing baseline, an old base snapshot, a config problem) explain why the
+  // page shows less than expected; hiding them turns each into a silent surprise.
+  document.getElementById("runnotes").innerHTML=(DATA.notes||[])
+    .map(n=>`<div>note: ${esc(n)}</div>`).join("");
+}
+
+/* ---- filters ---- */
+function depsOut(s){ return [...new Set([...s.requires,...s.depends_on,...s.mentions])]; }
+function matches(s){
+  const q=document.getElementById("q").value.toLowerCase();
+  const pl=document.getElementById("f-plugin").value;
+  const tier=document.getElementById("f-tier").value;
+  return (!pl||s.plugin===pl) &&
+    (tier===""||s.tier===+tier) &&
+    (!document.getElementById("f-err").checked||s.errors>0) &&
+    (!document.getElementById("f-hub").checked||s.depended_by.length>0) &&
+    (!document.getElementById("f-orch").checked||s.is_orchestrator) &&
+    (!q||(s.key+" "+s.desc+" "+depsOut(s).join(" ")).toLowerCase().includes(q));
+}
+
+/* ---- board ---- */
+function tierGlyph(t){
+  return `<span class="tier" title="Tier ${t}"><b>${"●".repeat(t)}</b>${"○".repeat(3-t)}</span>`;
+}
+function drawBoard(){
+  const hit=SKILLS.filter(matches);
+  document.getElementById("count").textContent=`${hit.length} / ${SKILLS.length}`;
+  const hitSet=new Set(hit.map(s=>s.key));
+  const anyFilter=hit.length!==SKILLS.length;
+  const html=PLUGINS.map(p=>{
+    const members=SKILLS.filter(s=>s.plugin===p)
+      .sort((a,b)=> (b.is_orchestrator?1:0)-(a.is_orchestrator?1:0)
+                 || b.depended_by.length-a.depended_by.length
+                 || b.errors-a.errors || a.name.localeCompare(b.name));
+    const shown=members.filter(s=>!anyFilter||hitSet.has(s.key));
+    if(!shown.length) return "";
+    const tiles=shown.map(s=>{
+      const hub=s.depended_by.length;
+      const wf = s.is_orchestrator;
+      const chain = wf ? s.flow.map(e=>e.skill).join(" → ") : "";
+      return `<div class="tile ${wf?"orch":hub>=3?"hubbed":""} ${s.key===selKey?"sel":""}"
+        style="--pc:${pcolor(p)}" onclick="focusKeyed(REF[${ref(s.key)}])">
+        ${wf?`<div class="wfband" title="open the pipeline in the Flow view"
+          onclick="event.stopPropagation();openInFlow(REF[${ref(s.key)}])"
+          >WORKFLOW · ${s.flow.length} PHASES${s.flow_source==="heuristic"?" (inferred)":""}</div>`:""}
+        <div class="nm">${esc(s.name)}</div>
+        <div class="ds">${esc(s.desc)||'<span class="note">no description</span>'}</div>
+        ${wf?`<div class="wfchain" title="${esc(chain)}">${esc(chain)}</div>`:""}
+        <div class="meta">
+          ${tierGlyph(s.tier)}
+          ${hub?`<span class="hub" title="depended on by ${hub}">⇑${hub}</span>`:""}
+          ${s.errors?`<span class="e" title="lint error">${s.errors}E</span>`:""}
+          ${s.warns?`<span class="w" title="lint warn">${s.warns}W</span>`:""}
+          ${s.has_scripts?`<span title="has scripts">scr</span>`:""}
+          ${s.has_evals?`<span title="has evals">eval</span>`:""}
+          ${DIFF&&s.diff_new?`<span class="dnew" title="absent from the base snapshot">new</span>`:""}
+          ${DIFF&&s.diff_added_err?`<span class="e" title="errors this change added">+${s.diff_added_err}E</span>`:""}
+          ${DIFF&&s.diff_resolved?`<span class="dres" title="findings this change resolved">-${s.diff_resolved}</span>`:""}
+        </div></div>`;
+    }).join("");
+    return `<div class="psec">
+      <div class="phead"><span class="pdot" style="background:${pcolor(p)}"></span>
+        <h3>${esc(p)}</h3><span class="pn">${shown.length}${anyFilter?` / ${members.length}`:" skills"}</span></div>
+      <div class="tiles">${tiles}</div></div>`;
+  }).join("");
+  document.getElementById("board").innerHTML=html||`<div class="note">No matches</div>`;
+}
+
+/* ============================================================
+   Flow view — one workflow at a time, drawn as the pipeline it is.
+
+   Only orchestrators (a declared flow.json, or a Phase Registry table we could read)
+   appear here. Every other skill shows up as a phase, never as a free-floating node:
+   the question this view answers is "what runs in what order, passing what", and that
+   question has an order, so the layout has one too.
+   ============================================================ */
+const WORKFLOWS=SKILLS.filter(s=>s.is_orchestrator)
+  .sort((a,b)=>b.flow.length-a.flow.length||a.key.localeCompare(b.key));
+let wfKey=WORKFLOWS.length?WORKFLOWS[0].key:null;
+
+// A step names a skill; the same name can exist in several plugins, so prefer the
+// orchestrator's own plugin before falling back to any corpus-wide match.
+function delegateOf(name,plugin){
+  const keys=nameKeys[name]||[];
+  const own=keys.find(k=>byKey[k].plugin===plugin);
+  return byKey[own||keys[0]]||null;
+}
+function stepsOf(wf){
+  const st=wf.flow.slice();
+  if(st.every(e=>e.phase!=null)) st.sort((a,b)=>a.phase-b.phase);
+  return st.map((e,i)=>({...e, i, s:delegateOf(e.skill,wf.plugin)}));
+}
+const artKey=a=>String(a).toLowerCase().replace(/[\s（）()「」【】]/g,"").replace(/[.,、。]+$/,"");
+
+function renderFlow(){
+  const shown=WORKFLOWS.filter(matches);
+  document.getElementById("count").textContent=
+    `${shown.length} / ${WORKFLOWS.length} workflows`;
+  if(!shown.some(w=>w.key===wfKey)) wfKey=shown.length?shown[0].key:null;
+
+  document.getElementById("wfrailhead").textContent=
+    WORKFLOWS.length?`Workflows · ${shown.length}`:"Workflows";
+  document.getElementById("wflist").innerHTML=shown.length?shown.map(w=>
+    `<div class="wfitem ${w.key===wfKey?"on":""}" style="--pc:${pcolor(w.plugin)}"
+          onclick="selectWorkflow(REF[${ref(w.key)}])">
+       <div class="n">${esc(w.name)}</div>
+       <div class="m">${esc(w.plugin)} · ${w.flow.length} phases`+
+       `${w.flow_source==="heuristic"?" · inferred":""}</div></div>`).join("")
+    :`<div class="wfitem"><span class="note">none</span></div>`;
+
+  document.getElementById("wfmain").innerHTML=
+    wfKey?pipelineHTML(byKey[wfKey]):flowEmptyHTML(shown.length);
+  layoutFlow();
+}
+function selectWorkflow(key){ wfKey=key; renderFlow(); }
+
+/* ---- the canvas: layout, edge routing, pan / zoom / drag ----
+   Positions are computed, not simulated: phase order fixes the column, so the picture is
+   the same every time it is drawn. Dragging a phase only overrides that position; "reset"
+   puts it back. */
+const FCARD=250, FGAPX=145, FLANE=27, FPAD=36;
+const FPOS={};   // wfKey -> {phaseIndex:{x,y}} for phases the reader moved
+const FVIEW={};  // wfKey -> {k,x,y}
+let FBOTTOM=0;   // y of the deepest routing lane, kept for fit
+
+// Edges follow the artifacts: phase 3 consuming 01_ctx.json is joined to whichever phase
+// produced it, not merely to phase 2. Consecutive phases with no artifact in common still
+// get a dashed "then" edge, which is all an inferred flow can honestly claim.
+function flowEdges(wf,steps){
+  const producedAt={};
+  steps.forEach(e=>e.outputs.forEach(o=>{
+    const k=artKey(o); if(!(k in producedAt)) producedAt[k]=e.i;
+  }));
+  const map=new Map();
+  steps.forEach(e=>e.inputs.forEach(inp=>{
+    const k=artKey(inp);
+    let src;
+    for(const p in producedAt){
+      if(producedAt[p]<e.i&&(p===k||p.includes(k)||k.includes(p))){
+        if(src===undefined||producedAt[p]>src) src=producedAt[p];   // the most recent writer
+      }
+    }
+    if(src===undefined) return;
+    const id=src+"-"+e.i;
+    const edge=map.get(id)||{from:src,to:e.i,arts:[],kind:"data"};
+    if(!edge.arts.includes(inp)) edge.arts.push(inp);
+    map.set(id,edge);
+  }));
+  for(let i=0;i+1<steps.length;i++){
+    if(!map.has(i+"-"+(i+1))) map.set(i+"-"+(i+1),{from:i,to:i+1,arts:[],kind:"seq"});
+  }
+  return [...map.values()].sort((a,b)=>(a.to-a.from)-(b.to-b.from));
+}
+
+function readBoxes(){
+  const scene=document.getElementById("fscene");
+  if(!scene) return [];
+  return [...scene.querySelectorAll(".fnode")].map(el=>({
+    el, x:parseFloat(el.style.left)||0, y:parseFloat(el.style.top)||0,
+    w:el.offsetWidth||FCARD, h:el.offsetHeight||120,
+  }));
+}
+
+function layoutFlow(){
+  const wf=byKey[wfKey];
+  const scene=document.getElementById("fscene");
+  if(!wf||!scene) return;
+  const saved=FPOS[wf.key]||{};
+  [...scene.querySelectorAll(".fnode")].forEach((el,i)=>{
+    const p=saved[i]||{x:i*(FCARD+FGAPX), y:0};
+    el.style.left=p.x+"px"; el.style.top=p.y+"px";
+  });
+  drawFlowEdges();
+  if(FVIEW[wf.key]) applyFlowView(); else initialFlowView();
+}
+
+// Fitting a long pipeline to the canvas shrinks the cards until nothing can be read, and
+// this canvas pans. So the opening view stays legible and starts at phase 1; ⤢ fit is
+// there for when the reader wants the whole shape at once.
+function initialFlowView(){
+  const cv=document.getElementById("fcanvas"), b=flowBBox();
+  if(!cv||!b||!wfKey) return;
+  const r=cv.getBoundingClientRect();
+  const fit=Math.max(0.25,Math.min(1.2,
+    Math.min((r.width-FPAD*2)/b.w,(r.height-FPAD*2)/b.h)));
+  if(fit>=0.85){ fitFlow(); return; }
+  const k=Math.max(0.8,Math.min(1,fit*1.9));
+  FVIEW[wfKey]={k, x:FPAD-b.x*k, y:(r.height-b.h*k)/2-b.y*k};
+  applyFlowView();
+}
+
+function drawFlowEdges(){
+  const wf=byKey[wfKey];
+  const svg=document.getElementById("fedges");
+  if(!wf||!svg) return;
+  const boxes=readBoxes();
+  const edges=flowEdges(wf,stepsOf(wf));
+  FBOTTOM=0;
+  const base=Math.max(0,...boxes.map(b=>b.y+b.h))+20;
+  const lanes=[];                                  // each lane holds the x spans it already carries
+  const paths=[], labels=[];
+  const R=9;
+
+  edges.forEach(e=>{
+    const a=boxes[e.from], b=boxes[e.to];
+    if(!a||!b) return;
+    const ay=a.y+a.h/2, by=b.y+b.h/2, ax=a.x+a.w, bx=b.x;
+    const cls=`ed ${e.kind}`;
+    const mark=e.kind==="seq"?"url(#fah-seq)":"url(#fah-data)";
+    let lx,ly;
+    if(e.to===e.from+1){
+      // Neighbours get a direct curve; it degrades to a straight line when tops align.
+      paths.push(`<path class="${cls}" marker-end="${mark}"
+        d="M${ax},${ay} C${ax+46},${ay} ${bx-46},${by} ${bx},${by}"/>`);
+      lx=(ax+bx)/2; ly=(ay+by)/2-13;
+    } else {
+      // A skip edge is routed under the row, one lane per overlapping span, so two of them
+      // never sit on top of each other.
+      const x1=ax+16, x2=bx-16;
+      let lane=0;
+      while(lanes[lane]&&lanes[lane].some(s=>!(x2<s[0]||x1>s[1]))) lane++;
+      (lanes[lane] ||= []).push([Math.min(x1,x2),Math.max(x1,x2)]);
+      const y=base+lane*FLANE;
+      FBOTTOM=Math.max(FBOTTOM,y);
+      paths.push(`<path class="${cls}" marker-end="${mark}" d="M${ax},${ay} H${x1-R}
+        Q${x1},${ay} ${x1},${ay+R} V${y-R} Q${x1},${y} ${x1+R},${y}
+        H${x2-R} Q${x2},${y} ${x2},${y-R} V${by+R} Q${x2},${by} ${x2+R},${by} H${bx}"/>`);
+      lx=(x1+x2)/2; ly=y;
+    }
+    if(e.arts.length){
+      const head=e.arts[0]+(e.arts.length>1?` +${e.arts.length-1}`:"");
+      labels.push(`<div class="elabel ${e.arts.length>1?"multi":""}"
+        style="left:${lx.toFixed(1)}px;top:${ly.toFixed(1)}px"
+        title="${esc(e.arts.join("\\n"))}">${esc(head)}</div>`);
+    }
+  });
+
+  FBOTTOM=Math.max(base,FBOTTOM);
+  svg.innerHTML=`<defs>
+      <marker id="fah-data" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6"
+        orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 z" fill="var(--s1)"/></marker>
+      <marker id="fah-seq" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6"
+        orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 z" fill="var(--axis)"/></marker>
+    </defs>${paths.join("")}`;
+  document.getElementById("flabels").innerHTML=labels.join("");
+}
+
+function flowBBox(){
+  const boxes=readBoxes();
+  if(!boxes.length) return null;
+  const x0=Math.min(...boxes.map(b=>b.x)), y0=Math.min(...boxes.map(b=>b.y));
+  const x1=Math.max(...boxes.map(b=>b.x+b.w));
+  const y1=Math.max(Math.max(...boxes.map(b=>b.y+b.h)),FBOTTOM+14);
+  return {x:x0, y:y0, w:Math.max(x1-x0,1), h:Math.max(y1-y0,1)};
+}
+function fitFlow(){
+  const cv=document.getElementById("fcanvas"), b=flowBBox();
+  if(!cv||!b||!wfKey) return;
+  const r=cv.getBoundingClientRect();
+  const k=Math.max(0.25,Math.min(1.2,
+    Math.min((r.width-FPAD*2)/b.w,(r.height-FPAD*2)/b.h)));
+  FVIEW[wfKey]={k, x:(r.width-b.w*k)/2-b.x*k, y:(r.height-b.h*k)/2-b.y*k};
+  applyFlowView();
+}
+function applyFlowView(){
+  const cv=document.getElementById("fcanvas"), sc=document.getElementById("fscene");
+  if(!cv||!sc) return;
+  const v=FVIEW[wfKey]||{k:1,x:0,y:0};
+  sc.style.transform=`translate(${v.x.toFixed(1)}px,${v.y.toFixed(1)}px) scale(${v.k.toFixed(3)})`;
+  // The dot grid pans and zooms with the diagram: a static grid makes panning feel broken.
+  cv.style.backgroundSize=`${(22*v.k).toFixed(2)}px ${(22*v.k).toFixed(2)}px`;
+  cv.style.backgroundPosition=`${v.x.toFixed(1)}px ${v.y.toFixed(1)}px`;
+  document.getElementById("fzoom").textContent=Math.round(v.k*100)+"%";
+}
+function flowZoom(f){
+  const cv=document.getElementById("fcanvas");
+  if(!cv||!wfKey) return;
+  const r=cv.getBoundingClientRect(), v=FVIEW[wfKey]||{k:1,x:0,y:0};
+  const k=Math.max(0.2,Math.min(2.5,v.k*f)), px=r.width/2, py=r.height/2;
+  FVIEW[wfKey]={k, x:px-(px-v.x)*k/v.k, y:py-(py-v.y)*k/v.k};
+  applyFlowView();
+}
+function resetFlowLayout(){
+  delete FPOS[wfKey]; delete FVIEW[wfKey];
+  layoutFlow();
+}
+
+function initFlowInput(){
+  const main=document.getElementById("wfmain");
+  let mode=null, last=null, node=null, moved=0;
+
+  main.addEventListener("pointerdown",ev=>{
+    const cv=ev.target.closest("#fcanvas");
+    if(!cv||ev.target.closest(".ftool")) return;
+    moved=0; last={x:ev.clientX,y:ev.clientY};
+    // Capture keeps a drag alive outside the canvas; a synthetic event without a live
+    // pointer id would throw, and losing capture is harmless.
+    try { cv.setPointerCapture(ev.pointerId); } catch (_) {}
+    const n=ev.target.closest(".fnode");
+    if(n){ mode="node"; node=n; n.classList.add("dragging"); }
+    else { mode="pan"; cv.classList.add("panning"); }
+  });
+  main.addEventListener("pointermove",ev=>{
+    if(!mode) return;
+    const v=FVIEW[wfKey]||{k:1,x:0,y:0};
+    const dx=ev.clientX-last.x, dy=ev.clientY-last.y;
+    last={x:ev.clientX,y:ev.clientY}; moved+=Math.abs(dx)+Math.abs(dy);
+    if(mode==="pan"){ v.x+=dx; v.y+=dy; FVIEW[wfKey]=v; applyFlowView(); return; }
+    const i=+node.dataset.i;
+    const store=(FPOS[wfKey] ||= {});
+    const p=store[i]||{x:parseFloat(node.style.left)||0, y:parseFloat(node.style.top)||0};
+    p.x+=dx/v.k; p.y+=dy/v.k; store[i]=p;
+    node.style.left=p.x+"px"; node.style.top=p.y+"px";
+    drawFlowEdges();
+  });
+  main.addEventListener("pointerup",()=>{
+    const wasNode=mode==="node", n=node, tiny=moved<4;
+    mode=null; node=null;
+    document.querySelectorAll(".fnode.dragging").forEach(x=>x.classList.remove("dragging"));
+    const cv=document.getElementById("fcanvas");
+    if(cv) cv.classList.remove("panning");
+    // A drag must not read as a click, or moving a card would open its dossier every time.
+    if(wasNode&&tiny&&n&&n.dataset.key) focusKeyed(n.dataset.key);
+  });
+  main.addEventListener("wheel",ev=>{
+    const cv=ev.target.closest("#fcanvas");
+    if(!cv||!wfKey) return;
+    ev.preventDefault();
+    const r=cv.getBoundingClientRect(), px=ev.clientX-r.left, py=ev.clientY-r.top;
+    const v=FVIEW[wfKey]||{k:1,x:0,y:0};
+    const k=Math.max(0.2,Math.min(2.5,v.k*Math.exp(-ev.deltaY*0.0016)));
+    FVIEW[wfKey]={k, x:px-(px-v.x)*k/v.k, y:py-(py-v.y)*k/v.k};
+    applyFlowView();
+  },{passive:false});
+  main.addEventListener("dblclick",ev=>{ if(ev.target.closest("#fcanvas")) fitFlow(); });
+}
+
+function flowEmptyHTML(shownCount){
+  if(WORKFLOWS.length&&!shownCount) return `<div class="wfempty">No workflow matches the filters.
+    <div class="why">${WORKFLOWS.length} workflow(s) exist in this corpus.</div></div>`;
+  return `<div class="wfempty">No workflow skill in this corpus.
+    <div class="why">A skill appears here once it declares its call order in
+      <code>flow.json</code> (phase / skill / inputs / outputs). Failing that, mekiki infers
+      one from a <code>### Phase Registry</code> table in the body and marks it as inferred.
+      <br>Skills that merely mention other skills are not workflows — they are in Board and Catalog.</div>
+  </div>`;
+}
+
+function pipelineHTML(wf){
+  const steps=stepsOf(wf);
+  const declared=wf.flow_source==="declared";
+  const inFlow=new Set(steps.map(e=>e.skill));
+
+  // Which artifacts an earlier phase already produced. Only meaningful for declared flows:
+  // the inferred table gives outputs only, so an "unmet input" claim would be an artefact
+  // of the parser, not of the corpus.
+  const producedAt={};
+  steps.forEach(e=>e.outputs.forEach(o=>{ const k=artKey(o); if(!(k in producedAt)) producedAt[k]=e.i; }));
+  const consumedBy={};
+  steps.forEach(e=>e.inputs.forEach(o=>{ (consumedBy[artKey(o)] ||= []).push(e.i); }));
+  const upstream=(k,i)=>Object.keys(producedAt).some(p=>
+    producedAt[p]<i&&(p===k||p.includes(k)||k.includes(p)));
+
+  const nodes=steps.map((e,idx)=>{
+    const s=e.s;
+    const phase=e.phase!=null?"PHASE "+e.phase:"#"+(idx+1);
+    const io=(lab,arr,kind)=>arr.length?`<div class="io"><span class="lab">${lab}</span> `+
+      arr.map(a=>{
+        const k=artKey(a);
+        let cls="";
+        if(declared&&kind==="in"&&!upstream(k,e.i)) cls=" unmet";
+        if(declared&&kind==="out"&&!(consumedBy[k]||[]).some(j=>j>e.i)) cls=" dead";
+        const tip=cls===" unmet"?"not produced by an earlier phase — external input?"
+                 :cls===" dead"?"not consumed by a later phase — final deliverable?":"";
+        // The chip truncates, so the full string always lives in the tooltip.
+        return `<span class="art${cls}" title="${esc(tip?a+" — "+tip:a)}">${esc(a)}</span>`;
+      }).join("")+`</div>`:"";
+    const card=!s
+      ? `<div class="pcard missing" style="--pc:var(--critical)">
+           <div class="ph">${phase}</div>
+           <div class="sk">${esc(e.skill)}</div>
+           <div class="ds"><span class="err">Not found in this corpus.</span> The workflow
+             delegates to a skill that is not installed here.</div>
+           ${io("in ←",e.inputs,"in")}${io("out →",e.outputs,"out")}</div>`
+      : (()=>{
+          const calls=(s.mentions||[]).filter(n=>!inFlow.has(n)&&n!==wf.name).slice(0,3);
+          return `<div class="pcard ${s.key===selKey?"sel":""}" style="--pc:${pcolor(s.plugin)}"
+                       id="pc-${esc(s.key)}">
+            <div class="ph">${phase}</div>
+            <div class="sk">${esc(s.name)}</div>
+            <div class="ds">${esc(s.desc)||'<span class="note">no description</span>'}</div>
+            <div class="meta">${tierGlyph(s.tier)}
+              ${s.errors?`<span class="e" title="lint error">${s.errors}E</span>`:""}
+              ${s.warns?`<span class="w" title="lint warn">${s.warns}W</span>`:""}
+              ${s.has_scripts?`<span title="has scripts">scr</span>`:""}
+              ${s.has_evals?`<span title="has evals">eval</span>`:""}
+              ${s.plugin!==wf.plugin?`<span title="lives in another plugin">↗${esc(s.plugin)}</span>`:""}
+            </div>
+            ${io("in ←",e.inputs,"in")}${io("out →",e.outputs,"out")}
+            ${calls.length?`<div class="calls" title="skills this phase mentions, outside the flow">
+              also calls ${calls.map(esc).join(", ")}</div>`:""}
+          </div>`;
+        })();
+    return `<div class="fnode" data-i="${idx}"${s?` data-key="${esc(s.key)}"`:""}>${card}</div>`;
+  }).join("");
+
+  const known=steps.filter(e=>e.s);
+  const missing=steps.length-known.length;
+  const distinct=new Set(known.map(e=>e.s.key));
+  const shared=[...distinct].filter(k=>WORKFLOWS.some(w=>
+    w.key!==wf.key&&w.flow.some(f=>(delegateOf(f.skill,w.plugin)||{}).key===k)));
+  const errs=known.reduce((a,e)=>a+e.s.errors,0);
+  const src=wf.flow_source==="declared"
+    ?`<span class="flowsrc declared">declared in flow.json</span>`
+    :`<span class="flowsrc heuristic">inferred from the Phase Registry table</span>`;
+
+  return `<div class="wfhead" style="--pc:${pcolor(wf.plugin)}">
+      <div class="p">${esc(wf.plugin)}</div>
+      <h3>${esc(wf.name)} ${src}</h3>
+      <div class="ds">${esc(wf.desc)||'<span class="err">no description</span>'}</div>
+      <div class="facts">
+        <span><b>${steps.length}</b> phases</span>
+        <span><b>${distinct.size}</b> distinct skills</span>
+        ${missing?`<span class="err"><b>${missing}</b> missing delegate${missing>1?"s":""}</span>`:""}
+        <span><b>${errs}</b> lint error${errs===1?"":"s"} across the pipeline</span>
+        ${shared.length?`<span><b>${shared.length}</b> also used by another workflow</span>`:""}
+        <span class="chip" onclick="focusKeyed(REF[${ref(wf.key)}])"
+          title="open the orchestrator's own dossier">${esc(wf.name)} ↗</span>
+      </div>
+    </div>
+    <div class="prow">pipeline</div>
+    <div class="fcanvas" id="fcanvas">
+      <div class="fscene" id="fscene">
+        <svg class="fedges" id="fedges"></svg>
+        <div id="flabels"></div>
+        ${nodes}
+      </div>
+      <div class="ftool">
+        <button class="ghostbtn" onclick="flowZoom(1.25)" title="zoom in">+</button>
+        <button class="ghostbtn" onclick="flowZoom(0.8)" title="zoom out">−</button>
+        <button class="ghostbtn" onclick="fitFlow()" title="fit to the canvas">⤢ fit</button>
+        <button class="ghostbtn" onclick="resetFlowLayout()" title="undo moved phases">↻ reset</button>
+      </div>
+      <div class="fhint">drag to pan · wheel to zoom · drag a phase to move it</div>
+      <div class="fzoom" id="fzoom"></div>
+    </div>
+    ${runbookHTML(wf,steps,inFlow,declared)}
+    ${ledgerHTML(steps,declared,producedAt,consumedBy,shared)}`;
+}
+
+// The runbook is generated from what each skill declares, never from a summary we invent:
+// the description, the Contract entries and the flow's own I/O, in that order of trust.
+function runbookHTML(wf,steps,inFlow,declared){
+  const edges=flowEdges(wf,steps);
+  const at=i=>{ const st=steps[i]; return st?(st.phase!=null?"P"+st.phase:"#"+(i+1)):"?"; };
+  const blocks=steps.map((e,idx)=>{
+    const s=e.s;
+    const num=`<div class="rbnum"><b>${e.phase!=null?e.phase:idx+1}</b>phase</div>`;
+    if(!s) return `<div class="rbstep missing">${num}<div>
+      <div class="rbhead"><span class="rbname">${esc(e.skill)}</span>
+        <span class="rbmeta e">not installed in this corpus</span></div>
+      <div class="rbdesc">The pipeline delegates to this skill, but nothing here provides
+        it, so what this phase does cannot be read from the corpus.</div>
+      ${row("takes",arts(e.inputs))}${row("produces",arts(e.outputs))}
+    </div></div>`;
+
+    const ct=s.contract, has=k=>ct.present&&ct.items[k];
+    const rows=[];
+    if(has("Trigger")) rows.push(row("runs when",esc(ct.items.Trigger)));
+    rows.push(row("takes", e.inputs.length?arts(e.inputs)
+      :has("Inputs")?esc(ct.items.Inputs)+src("Contract"):null,
+      declared?"nothing declared":null));
+    rows.push(row("produces", e.outputs.length?arts(e.outputs)
+      :has("Outputs")?esc(ct.items.Outputs)+src("Contract"):null,
+      declared?"nothing declared":null));
+    const hand=handOff(edges,idx,at);
+    if(hand.length) rows.push(row("hands off",
+      hand.map(h=>`<span class="a">${esc(h.art)}</span> → ${h.to.join(", ")}`).join("<br>")));
+    if(has("Non-goals")) rows.push(row("does not",esc(ct.items["Non-goals"])));
+    const calls=(s.mentions||[]).filter(n=>!inFlow.has(n)&&n!==wf.name);
+    if(calls.length) rows.push(row("also calls",chips(calls,false)));
+    if(!ct.present) rows.push(row("contract",
+      `<span class="gap">no Contract block — the description above is everything this
+       phase declares about its scope</span>`));
+
+    return `<div class="rbstep">${num}<div>
+      <div class="rbhead">
+        <span class="rbname" onclick="focusKeyed(REF[${ref(s.key)}])">${esc(s.name)}</span>
+        <span class="rbmeta">${tierGlyph(s.tier)} T${s.tier}`+
+        `${s.plugin!==wf.plugin?` · ↗${esc(s.plugin)}`:""}`+
+        `${s.errors?` · <span class="e">${s.errors}E</span>`:""}`+
+        `${s.warns?` · <span class="w">${s.warns}W</span>`:""}</span>
+      </div>
+      <div class="rbdesc">${esc(s.desc)||'<span class="gap">no description</span>'}</div>
+      <dl class="rbrow">${rows.join("")}</dl>
+    </div></div>`;
+  }).join("");
+
+  return `<div class="prow">runbook</div>
+    <div class="panel"><h4>What each phase does
+      <span class="rbtools">
+        <button class="ghostbtn" id="rbcopy" onclick="copyRunbook()">⧉ copy as Markdown</button>
+      </span></h4>
+      ${declared?"":`<div class="note" style="margin:-2px 0 9px">This flow was inferred from
+        a Phase Registry table, which records outputs only — the inputs of each phase are
+        not stated anywhere mekiki can read.</div>`}
+      ${blocks}</div>`;
+}
+// One line per artifact, not one per edge: "01_ctx.json → P2, P3" rather than the same
+// artifact repeated for every consumer.
+function handOff(edges,idx,at){
+  const by=new Map();
+  edges.filter(x=>x.from===idx).forEach(x=>x.arts.forEach(a=>{
+    if(!by.has(a)) by.set(a,[]);
+    by.get(a).push(at(x.to));
+  }));
+  return [...by.entries()].map(([art,to])=>({art,to:[...new Set(to)]}));
+}
+function row(label,value,empty){
+  if(!value) return empty?`<dt>${label}</dt><dd class="gap">${empty}</dd>`:"";
+  return `<dt>${label}</dt><dd>${value}</dd>`;
+}
+function arts(list){
+  return list.length?list.map(a=>`<span class="a">${esc(a)}</span>`).join(", "):null;
+}
+function src(where){ return `<span class="src">from ${where}</span>`; }
+
+function runbookMarkdown(wf){
+  const steps=stepsOf(wf), edges=flowEdges(wf,steps);
+  const at=i=>{ const st=steps[i]; return st?(st.phase!=null?"P"+st.phase:"#"+(i+1)):"?"; };
+  const out=[`# ${wf.name} (${wf.plugin}) — ${steps.length} phases`,""];
+  if(wf.desc) out.push("> "+wf.desc,"");
+  out.push(`Source: ${wf.flow_source==="declared"?"flow.json":"inferred from the Phase Registry table"}`,"");
+  steps.forEach((e,idx)=>{
+    const head=`## Phase ${e.phase!=null?e.phase:idx+1} — ${e.s?e.s.name:e.skill}`;
+    out.push(e.s?head:head+" (not installed in this corpus)","");
+    if(e.s&&e.s.desc) out.push(e.s.desc,"");
+    const ct=e.s?e.s.contract:null, has=k=>ct&&ct.present&&ct.items[k];
+    const bullet=(k,v)=>{ if(v) out.push(`- **${k}**: ${v}`); };
+    if(has("Trigger")) bullet("runs when",ct.items.Trigger);
+    bullet("takes",e.inputs.join(", ")||(has("Inputs")?ct.items.Inputs+" (from Contract)":""));
+    bullet("produces",e.outputs.join(", ")||(has("Outputs")?ct.items.Outputs+" (from Contract)":""));
+    bullet("hands off",handOff(edges,idx,at)
+      .map(h=>`${h.art} → ${h.to.join(", ")}`).join("; "));
+    if(has("Non-goals")) bullet("does not",ct.items["Non-goals"]);
+    out.push("");
+  });
+  return out.join("\n");
+}
+function copyRunbook(){
+  const wf=byKey[wfKey];
+  const btn=document.getElementById("rbcopy");
+  if(!wf||!btn) return;
+  const md=runbookMarkdown(wf);
+  const done=ok=>{ btn.textContent=ok?"copied ✓":"copy blocked — select the panel instead";
+                   setTimeout(()=>{ btn.textContent="⧉ copy as Markdown"; },2200); };
+  // A file:// page may have no clipboard API, which is exactly how this page is usually
+  // opened, so the textarea path is the one that has to work.
+  const fallback=()=>{
+    const ta=document.createElement("textarea");
+    ta.value=md; ta.style.position="fixed"; ta.style.opacity="0";
+    document.body.appendChild(ta); ta.select();
+    let ok=false;
+    try { ok=document.execCommand("copy"); } catch(_) {}
+    ta.remove(); done(ok);
+  };
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(md).then(()=>done(true),fallback);
+  } else fallback();
+}
+
+function ledgerHTML(steps,declared,producedAt,consumedBy,shared){
+  const names=[...new Set(steps.flatMap(e=>[...e.outputs,...e.inputs]))];
+  const rows=names.map(a=>{
+    const k=artKey(a);
+    const p=producedAt[k], c=(consumedBy[k]||[]);
+    const at=i=>{ const st=steps[i]; return st?(st.phase!=null?"P"+st.phase:"#"+(i+1)):"?"; };
+    let fl="", cls="";
+    if(p===undefined){ fl="external input"; cls=declared?"warn":""; }
+    else if(!c.length) fl="produced "+at(p)+(declared?" · terminal":"");
+    else fl="produced "+at(p)+" → "+c.map(at).join(", ");
+    return `<div class="artrow"><span class="nm">${esc(a)}</span>
+      <span class="fl ${cls}">${esc(fl)}</span></div>`;
+  }).join("");
+  const parts=[];
+  if(names.length) parts.push(`<div class="panel"><h4>Artifacts along the pipeline</h4>
+    ${rows}${declared?"":`<div class="note" style="margin-top:7px">Inferred from a markdown
+      table, so these strings are as written; no unmet-input check is applied.</div>`}</div>`);
+  if(shared.length) parts.push(`<div class="panel"><h4>Also used by another workflow</h4>
+    ${chips(shared,true)}</div>`);
+  return parts.length?`<div class="prow">detail</div><div class="wfledger">${parts.join("")}</div>`:"";
+}
+
+/* ---- dossier ---- */
+function focusKeyed(key){
+  selKey=key;
+  if(activeTab==="board") drawBoard();
+  else if(activeTab==="flow") markFlowSelection();
+  openDossier(byKey[key]);
+}
+function markFlowSelection(){
+  document.querySelectorAll("#wfmain .pcard").forEach(c=>
+    c.classList.toggle("sel",c.id==="pc-"+selKey));
+}
+function openDossier(s){
+  document.getElementById("dplugin").textContent=s.plugin;
+  document.getElementById("dname").textContent=s.name;
+  const up=[...reach(s.key,outN)].sort();
+  const down=[...reach(s.key,inN)].sort();
+  document.getElementById("dbody").innerHTML=
+    `<p class="dlead">${esc(s.desc)||'<span class="err">no description</span>'}</p>`
+    + detail(s,{noDesc:true})
+    + `<div class="panel" style="margin-top:10px"><h4>Trace (transitive dependencies)</h4><dl class="kv">
+       <dt>Upstream — what this skill relies on (${up.length})</dt><dd>${chips(up,true)}</dd>
+       <dt>Downstream — what relies on this skill (${down.length})</dt><dd>${chips(down,true)}</dd>
+     </dl></div>`;
+  document.getElementById("dossier").classList.add("open");
+}
+function closeDossier(){ selKey=null;
+  document.getElementById("dossier").classList.remove("open");
+  document.querySelectorAll(".tile.sel, .pcard.sel").forEach(t=>t.classList.remove("sel")); }
+document.addEventListener("keydown",ev=>{
+  if(ev.key!=="Escape") return;
+  const legend=document.getElementById("legend");
+  if(legend.classList.contains("open")) closeLegend(); else closeDossier();
+});
+
+/* ---- catalog ---- */
+function filtered(){
+  let rows=SKILLS.filter(matches);
+  const val=s=> sortKey==="deps"?depsOut(s).length
+            : sortKey==="depended"?s.depended_by.length : s[sortKey];
+  rows.sort((a,b)=>{ const x=val(a),y=val(b);
+    return (x<y?-1:x>y?1:0)*(sortDesc?-1:1)||a.key.localeCompare(b.key); });
+  return rows;
+}
+function contractDots(s){
+  return `<span class="dots">`+CITEMS.map(k=>
+    `<span class="${s.contract.items[k]!==undefined?"on":""}" title="${k}"></span>`).join("")+`</span>`;
+}
+function refTotal(s){ return Object.values(s.ref_formats||{}).reduce((a,b)=>a+b,0); }
+function fmtRefs(s){
+  const order=["md","yaml","json","jsonl","sql","other"];
+  const parts=order.filter(k=>s.ref_formats[k]).map(k=>`${k}×${s.ref_formats[k]}`);
+  return parts.length?parts.join(" · "):"";
+}
+function badge(s){
+  const b=(on,l,t)=>`<span class="${on?"on":""}" title="${esc(t||"")}">${l}</span>`;
+  const rt=refTotal(s);
+  return `<span class="badges">${b(s.has_scripts,"scr")}${b(s.has_tests,"test")}`
+       + `${b(s.has_refs,rt?`ref×${rt}`:"ref",fmtRefs(s))}${b(s.has_evals,"eval")}</span>`;
+}
+function chips(keys,isKey){
+  if(!keys.length) return `<span class="note">none</span>`;
+  return keys.map(k=>{
+    const target=isKey?k:(SKILLS.find(x=>x.name===k)||{}).key;
+    return `<span class="chip" onclick="event.stopPropagation();jump(REF[${ref(target||k)}])">${esc(k)}</span>`;
+  }).join("");
+}
+function detail(s,opts={}){
+  let c;
+  if(s.contract.present){
+    c=`<dl class="kv">`+CITEMS.map(k=>
+      `<dt>${k}</dt><dd>${s.contract.items[k]!==undefined?esc(s.contract.items[k]):'<span class="err">undefined</span>'}</dd>`).join("")+`</dl>`;
+  } else {
+    const h=Object.entries(s.heur);
+    c=`<div class="note">No Contract block. `+(h.length?
+      `Inferred from body headings:</div><dl class="kv">`+
+      h.map(([k,v])=>`<dt>${esc(k)} (inferred)</dt><dd>${v.map(esc).join("<br>")}</dd>`).join("")+`</dl>`
+      :`No I/O headings in the body either.</div>`);
+  }
+  const meta=`<dl class="kv">
+    ${opts.noDesc?"":`<dt>description</dt><dd class="desc">${esc(s.desc)||'<span class="err">none</span>'}</dd>`}
+    ${s.status?`<dt>status</dt><dd>${esc(s.status)}</dd>`:""}
+    ${s.ui!==""?`<dt>user-invocable</dt><dd>${s.ui}</dd>`:""}
+    ${s.canonical?`<dt>canonical/duplicate_of</dt><dd>${esc(s.canonical)}</dd>`:""}
+    ${refTotal(s)?`<dt>references file mix</dt><dd>${esc(fmtRefs(s))}</dd>`:""}
+    <dt>eval results</dt><dd>${s.eval_result==="passed"?`<span class="ok">recorded, all passing</span>`
+      :s.eval_result==="failing"?`<span class="err">recorded, not clean</span>`
+      :`<span class="note">not recorded (evals/results.json absent)</span>`}</dd>
+  </dl>`;
+  const deps=`<dl class="kv">
+    <dt>requires (guard declaration)</dt><dd>${chips(s.requires,false)}</dd>
+    <dt>depends_on (artifact dependency)</dt><dd>${chips(s.depends_on,false)}</dd>
+    <dt>Other skills mentioned in the body</dt><dd>${chips(s.mentions,false)}</dd>
+    <dt>Skills depending on this one (${s.depended_by.length})</dt><dd>${chips(s.depended_by,true)}</dd>
+    </dl>`;
+  const fx=s.findings.length?s.findings.map(f=>
+    `<div class="finding"><b class="${f.severity==="error"?"err":"wrn"}">${f.severity}</b> `+
+    `<span class="rule">${f.rule}</span> — ${esc(f.message)}</div>`).join("")
+    :`<span class="note ok">No findings</span>`;
+  return `<div class="dgrid">
+    ${s.is_orchestrator?flowPanel(s):""}
+    <div class="panel"><h4>Metadata</h4>${meta}</div>
+    <div class="panel"><h4>Contract (I/O)</h4>${c}</div>
+    <div class="panel"><h4>Dependencies</h4>${deps}</div>
+    <div class="panel"><h4>lint — <span class="num">${s.errors} err / ${s.warns} warn</span></h4>${fx}</div>
+  </div>`;
+}
+function flowPanel(s){
+  const src=s.flow_source==="declared"
+    ?`<span class="flowsrc declared">declared in flow.json</span>`
+    :`<span class="flowsrc heuristic">inferred from the Phase Registry table</span>`;
+  const io=(label,arr)=>arr.length
+    ?`<div class="io"><b>${label}</b> ${arr.map(esc).join(", ")}</div>`:"";
+  const steps=s.flow.map((e,i)=>{
+    const box=`<div class="step">
+      <div class="ph">${e.phase!=null?("PHASE "+e.phase):("#"+(i+1))}</div>
+      <div class="sk" onclick="event.stopPropagation();jump2(REF[${ref(e.skill)}])">${esc(e.skill)}</div>
+      ${io("in",e.inputs)}${io("out",e.outputs)}</div>`;
+    return box+(i<s.flow.length-1?`<div class="arrow">→</div>`:"");
+  }).join("");
+  return `<div class="panel flow"><h4>Orchestration (call order)${src}
+    <span class="chip" style="text-transform:none;letter-spacing:normal"
+      onclick="openInFlow(REF[${ref(s.key)}])">open in Flow ↗</span></h4>
+    <div class="steps">${steps}</div></div>`;
+}
+function openInFlow(key){
+  wfKey=key;
+  setTab("flow");
+  document.getElementById("view-flow").scrollIntoView({block:"start",behavior:"smooth"});
+}
+function renderTable(){
+  const rows=filtered();
+  document.getElementById("count").textContent=`${rows.length} / ${SKILLS.length}`;
+  document.getElementById("rows").innerHTML=rows.map((s,i)=>`
+    <tr class="row" onclick="toggle(${i})" id="row-${esc(s.key)}">
+      <td><span class="pdot" style="background:${pcolor(s.plugin)}"></span>${esc(s.plugin)}</td>
+      <td><b class="skname">${esc(s.name)}</b>${s.is_orchestrator?`<span class="orch-tag" title="${esc(s.flow_source)}">flow</span>`:""}</td>
+      <td>${tierGlyph(s.tier)} <span class="num zero">T${s.tier}</span></td>
+      <td>${contractDots(s)}</td>
+      <td class="num">${depsOut(s).length||'<span class="zero">0</span>'}</td>
+      <td class="num">${s.depended_by.length||'<span class="zero">0</span>'}</td>
+      <td>${badge(s)}</td>
+      <td class="num ${s.errors?"err":"zero"}">${s.errors}</td>
+      <td class="num ${s.warns?"wrn":"zero"}">${s.warns}</td>
+      <td class="num diffcol ${s.diff_added_err?"err":"zero"}">${
+        s.diff_new?`<span class="dnew">new</span>`:s.diff_added_err||`<span class="zero">0</span>`}</td>
+    </tr>
+    <tr class="detail" id="d-${i}"><td colspan="10">${detail(s)}</td></tr>`).join("");
+}
+function toggle(i){ document.getElementById("d-"+i).classList.toggle("open"); }
+function jump(key){
+  if(!key||!byKey[key]) return;
+  focusKeyed(key);
+  if(activeTab==="board"){
+    const el=document.querySelector(".tile.sel");
+    if(el) el.scrollIntoView({block:"center",behavior:"smooth"});
+  } else if(activeTab==="flow"){
+    // A jump lands in the pipeline when the target is a phase of it, and switches
+    // workflow when the target is a workflow itself. Otherwise the Flow view simply
+    // has nothing to show for that skill, and the dossier is the answer.
+    if(byKey[key].is_orchestrator&&key!==wfKey){ selectWorkflow(key); markFlowSelection(); }
+    const el=document.getElementById("pc-"+key);
+    if(el) el.scrollIntoView({block:"center",behavior:"smooth"});
+  }
+}
+function jump2(name){ const s=SKILLS.find(x=>x.name===name); if(s)jump(s.key); }
+
+/* ---- tabs, theme and wiring ---- */
+function setTab(t){
+  activeTab=t;
+  ["board","flow","cat"].forEach(x=>{
+    document.getElementById("tab-"+x).classList.toggle("on",t===x);
+    document.getElementById("view-"+x).style.display=t===x?"":"none";
+  });
+  refresh();
+}
+document.getElementById("tab-board").addEventListener("click",()=>setTab("board"));
+document.getElementById("tab-flow").addEventListener("click",()=>setTab("flow"));
+document.getElementById("tab-cat").addEventListener("click",()=>setTab("cat"));
+function openLegend(){ document.getElementById("legend").classList.add("open"); }
+function closeLegend(){ document.getElementById("legend").classList.remove("open"); }
+document.getElementById("legendbtn").addEventListener("click",openLegend);
+document.getElementById("legend").addEventListener("click",ev=>{
+  // Clicking the backdrop dismisses; clicking inside the sheet must not.
+  if(ev.target.id==="legend") closeLegend();
+});
+document.getElementById("themebtn").addEventListener("click",()=>{
+  const cur=document.documentElement.dataset.theme;
+  const dark=cur?cur==="dark":!matchMedia("(prefers-color-scheme: light)").matches;
+  document.documentElement.dataset.theme=dark?"light":"dark";
+});
+function refresh(){
+  if(activeTab==="board") drawBoard();
+  else if(activeTab==="flow") renderFlow();
+  else renderTable();
+}
+initFlowInput();
+["q","f-plugin","f-tier","f-err","f-hub","f-orch"].forEach(id=>
+  document.getElementById(id).addEventListener(id==="q"?"input":"change",refresh));
+document.querySelectorAll("th[data-k]").forEach(th=>
+  th.addEventListener("click",()=>{
+    const k=th.dataset.k;
+    if(sortKey===k)sortDesc=!sortDesc; else{sortKey=k;sortDesc=true;}
+    renderTable();
+  }));
+
+function syncCtrlHeight(){
+  const h=document.querySelector(".controls").offsetHeight;
+  document.documentElement.style.setProperty("--ctrl-h", h+"px");
+}
+new ResizeObserver(syncCtrlHeight).observe(document.querySelector(".controls"));
+
+deck(); setTab("board"); syncCtrlHeight();
+</script>
+</body>
+</html>

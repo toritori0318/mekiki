@@ -1,0 +1,32 @@
+{
+  "_comment": "Copy to config.json and edit. mekiki works without it; only org-specific checks are skipped.",
+
+  "_comment_profile": "Which runtime the corpus targets. 'claude-code' (the default) knows the extension keys and the 1,536-character skill-listing cap. 'generic' checks the Agent Skills specification only, so Claude Code extensions such as when_to_use are reported as non-standard and no listing cap applies.",
+  "profile": "claude-code",
+
+  "_comment_limits": "Numeric thresholds. Omit to take the profile's values; an entry here wins over them, and 0 turns a check off.",
+  "_example_limits": {
+    "listing_cap": 1536,
+    "max_body_lines": 500,
+    "max_body_tokens": 5000
+  },
+
+  "_comment_guards": "Guard skill names per risk tier, used by rules L8 and L20. A tier with no entry is not checked, because only your org knows the name.",
+  "guards": {
+    "billing": ["billing-guard"],
+    "write": ["destructive-write-guard"],
+    "browser": ["browser-automation-guard"]
+  },
+
+  "_comment_patterns": "Detection patterns (regexp). The built-in defaults are bilingual (English + Japanese), so most users need nothing here. Override a key to replace it entirely; overrides are case-insensitive unless you write your own flag group.",
+  "_example_patterns": {
+    "trigger": "use when|invoke this|activate for",
+    "lifecycle": "deprecated|obsolete|superseded",
+    "deterministic": "\\bcalculat(e|es|ed|ing|ion)\\b|\\bthresholds?\\b",
+    "internal": "internal skill|invoked by other skills",
+    "risk_billing": "ad spend|billing|charge",
+    "risk_write": "mutation|delete|overwrite",
+    "risk_browser": "browser|playwright|puppeteer",
+    "risk_publish": "publish|send email|broadcast"
+  }
+}

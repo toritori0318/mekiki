@@ -175,7 +175,7 @@ T3、そしてその状態を守るテストが本リポジトリにあります
 成熟度 Tier は同じ規則群の上に積み上がります。SLSA の保証レベルと同型で、tier は願望ではなく
 **測られた位置**です。
 
-| | | |
+| Tier | 状態 | 条件 |
 |---|---|---|
 | **T0** | 存在する | 基本（名前・description・状態語）に error があるか、Contract が未充足 |
 | **T1** | 宣言できている | 基本が綺麗で、**かつ** Contract の6項目が揃っている（新規スキルの最低線） |
@@ -187,7 +187,7 @@ T3、そしてその状態を守るテストが本リポジトリにあります
 
 ## ドキュメント
 
-| | |
+| ドキュメント | 内容 |
 |---|---|
 | **[SKILL_PROTOCOL.ja.md](SKILL_PROTOCOL.ja.md)** ([English](SKILL_PROTOCOL.md)) | 規約の全文。スキルの作者が読むもの |
 | **[docs/USAGE.ja.md](docs/USAGE.ja.md)** ([English](docs/USAGE.md)) | 全コマンド・CI の設定・baseline・設定・suppress |

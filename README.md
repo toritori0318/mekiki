@@ -186,7 +186,7 @@ Four ideas carry the rest, and each maps onto rules mekiki can check:
 Maturity tiers accumulate over those same rules — modelled on SLSA's assurance levels, so a
 tier is a measured position rather than an aspiration:
 
-| | | |
+| Tier | Meaning | Condition |
 |---|---|---|
 | **T0** | exists | the basics carry an error, or the Contract is incomplete |
 | **T1** | declared | basics clean **and** all six Contract entries present — the minimum for a new skill |
@@ -199,7 +199,7 @@ behind its **? legend** button.
 
 ## Documentation
 
-| | |
+| Document | What it covers |
 |---|---|
 | **[SKILL_PROTOCOL.md](SKILL_PROTOCOL.md)** ([日本語](SKILL_PROTOCOL.ja.md)) | The conventions in full — what skill authors read. |
 | **[docs/USAGE.md](docs/USAGE.md)** ([日本語](docs/USAGE.ja.md)) | Every command, CI recipes, baselines, configuration, suppression. |

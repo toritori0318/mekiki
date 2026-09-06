@@ -1,0 +1,51 @@
+# Release: on a version tag, build the binaries and publish a GitHub Release.
+#
+# Hand-rolled on purpose, like the rest of the repository: a release tool would be the
+# binary's only dependency, and the whole job is a loop around `go build`. The Homebrew
+# formula is NOT pushed from here — the tap repository bumps itself on a schedule, so this
+# workflow needs no cross-repository token (see toritori0318/homebrew-tap).
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+      - name: Test
+        run: go test ./...
+      - name: Build all platforms
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          mkdir -p dist
+          for target in darwin/amd64 darwin/arm64 linux/amd64 linux/arm64 windows/amd64; do
+            GOOS="${target%/*}"; GOARCH="${target#*/}"
+            bin="mekiki"; [ "$GOOS" = "windows" ] && bin="mekiki.exe"
+            CGO_ENABLED=0 GOOS="$GOOS" GOARCH="$GOARCH" \
+              go build -trimpath -ldflags "-s -w -X main.version=${TAG}" -o "$bin" .
+            name="mekiki_${TAG}_${GOOS}_${GOARCH}"
+            if [ "$GOOS" = "windows" ]; then
+              zip -q "dist/${name}.zip" "$bin"
+            else
+              tar -czf "dist/${name}.tar.gz" "$bin"
+            fi
+            rm "$bin"
+          done
+          (cd dist && sha256sum ./* > checksums.txt)
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" dist/* \
+            --title "mekiki ${GITHUB_REF_NAME}" \
+            --notes "Binaries for macOS, Linux and Windows. Also: \`brew install toritori0318/tap/mekiki\` or \`go install github.com/toritori0318/mekiki@${GITHUB_REF_NAME}\`."

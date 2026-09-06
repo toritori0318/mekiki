@@ -176,10 +176,13 @@ Tier は意図的に比較**しません**。スナップショットは Tier �
 
 ## エージェントに監査を回させる
 
-```bash
-cp -r skills/* ~/.claude/skills/
+```
+/plugin marketplace add toritori0318/mekiki
+/plugin install mekiki@mekiki
 ```
 
+このリポジトリは Claude Code の plugin marketplace を兼ねているので、同梱スキル2つは
+管理されたプラグインとして入ります（手動コピー `cp -r skills/* ~/.claude/skills/` でも可）。
 同梱スキルは2つです。`getting-started-with-mekiki` は初回接触——インストール、コーパスの
 発見（候補が複数なら推測せず確認）、初回の lint と Atlas、要約の平易な読み下し——を担い、
 baseline と修復には意図的に踏み込みません。`auditing-skill-corpus` が運用ワークフローで、

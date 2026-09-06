@@ -26,7 +26,7 @@ Go 標準ライブラリ以外の依存なし。設定ファイル無しで動�
 ## 30秒で
 
 ```bash
-go install github.com/toritori0318/mekiki@latest
+brew install toritori0318/tap/mekiki   # または: go install github.com/toritori0318/mekiki@latest
 mekiki lint path/to/skills
 ```
 
@@ -158,9 +158,12 @@ number of skills.
   継承した積み残しではなく差分でゲートする、規則が名指しした層で直す（引っかかった文を
   消して済ませない）、ガード名は**捏造せず訊く**。
 
-```bash
-cp -r skills/* ~/.claude/skills/
 ```
+/plugin marketplace add toritori0318/mekiki
+/plugin install mekiki@mekiki
+```
+
+（手動でコピーする場合は `cp -r skills/* ~/.claude/skills/`。）
 
 どちらも、教えている規約に自分自身が従っています —— `mekiki lint skills` は無指摘、Tier は
 両方 T3、そしてその状態を守るテストが本リポジトリにあります。

@@ -33,3 +33,17 @@ downsampling so the text stays crisp.
 
 Both scripts are deterministic: the same export produces the same page and the same
 images.
+
+## Releasing
+
+```bash
+git tag v0.2.0 && git push origin v0.2.0
+```
+
+That is the whole procedure. The `release` workflow builds the five platform binaries with
+the version stamped in, and publishes them as a GitHub Release. The Homebrew formula lives
+in [toritori0318/homebrew-tap](https://github.com/toritori0318/homebrew-tap) and **bumps
+itself**: a scheduled workflow there checks the latest release daily and rewrites the
+formula when it changes — run it manually from that repository's Actions tab to pick a
+release up immediately. No cross-repository token exists anywhere in this arrangement,
+deliberately: the tap can only write to itself.

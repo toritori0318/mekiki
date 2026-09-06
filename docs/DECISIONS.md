@@ -193,7 +193,19 @@ corpus size at the time that decision was made.
     phrases (L23 runs on every lint of `skills/`), mutual redirection in both descriptions
     and Non-goals, and each skill's eval near-misses aim at the other.
 
-22. **Prose heuristics ignore identifiers** — inline code, link targets, quoted strings and
+22. **Distribution: a self-bumping tap and a marketplace manifest, no release tooling** —
+    decision 11 named distribution as the adoption barrier, and `go install` still assumes a
+    Go toolchain. The Homebrew formula lives in a separate tap and builds from the tag
+    tarball; its repository **bumps itself** on a schedule by checking the latest release,
+    because a repository can push to itself with the default token — the conventional
+    arrangement (the release workflow pushing into the tap) needs a cross-repository PAT,
+    which is a standing credential this project would rather not hold. Release binaries are
+    built by a hand-rolled workflow for the same reason the SARIF writer is hand-rolled: the
+    job is a loop around `go build`, and a release tool would be the binary's only
+    dependency. The `.claude-plugin/` manifests make the repository double as a plugin
+    marketplace, so the bundled skills install as a managed plugin instead of a `cp -r`.
+
+23. **Prose heuristics ignore identifiers** — inline code, link targets, quoted strings and
     file paths are stripped before the prose rules look at a line. A skill name in backticks
     or a filename is a reference, not a description of work; this accounted for every
     remaining L6 false positive on a real corpus.

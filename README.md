@@ -27,7 +27,7 @@ tree is only ever read.
 ## In thirty seconds
 
 ```bash
-go install github.com/toritori0318/mekiki@latest
+brew install toritori0318/tap/mekiki   # or: go install github.com/toritori0318/mekiki@latest
 mekiki lint path/to/skills
 ```
 
@@ -168,9 +168,12 @@ number of skills.
   repairs at the layer the rule names instead of deleting the sentence that tripped it, and
   **asks** rather than invents a guard name.
 
-```bash
-cp -r skills/* ~/.claude/skills/
 ```
+/plugin marketplace add toritori0318/mekiki
+/plugin install mekiki@mekiki
+```
+
+(Or copy them by hand: `cp -r skills/* ~/.claude/skills/`.)
 
 Both are held to the conventions they teach — `mekiki lint skills` reports nothing, both
 reach T3, and a test in this repository keeps it that way.

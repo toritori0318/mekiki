@@ -1,0 +1,16 @@
+{
+  "name": "mekiki",
+  "version": "0.1.0",
+  "description": "Two Agent Skills that drive the mekiki skill-corpus linter: getting-started-with-mekiki takes a newcomer from zero to a first lint and Atlas, and auditing-skill-corpus runs the operating audit — baseline first, delta gating, per-rule repairs.",
+  "author": {
+    "name": "toritori0318"
+  },
+  "license": "MIT",
+  "keywords": [
+    "agent-skills",
+    "skill",
+    "lint",
+    "audit",
+    "atlas"
+  ]
+}

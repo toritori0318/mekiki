@@ -6,7 +6,7 @@ description: Audits a corpus of Agent Skills with the mekiki CLI and turns its f
 ## Contract
 - **Trigger**: the user asks for a mechanical audit of a skill tree, or for a change to skills to be checked before it goes to review.
 - **Inputs**: required: the path to the skill tree (a plugin tree, a `skills/` directory, or a single skill directory). optional: a base revision to compare against, and the org's `config.json`.
-- **Preconditions**: `mekiki version` succeeds. If it does not, run `go install github.com/toritori0318/mekiki@latest` and put `$(go env GOPATH)/bin` on PATH.
+- **Preconditions**: `mekiki version` succeeds. If it does not, install it: `brew install toritori0318/tap/mekiki`, or `go install github.com/toritori0318/mekiki@latest` with `$(go env GOPATH)/bin` on PATH.
 - **Outputs**: `out/<corpus>/auditing-skill-corpus/{YYYYMMDD}_audit/01_findings.json` and `02_repair-plan.md`.
 - **Postconditions**: `01_findings.json` exists, and every error in it appears in the repair plan with either a concrete edit or a question that only the user can answer.
 - **Non-goals**: does not handle the very first contact — installing the binary, discovering which corpus the user even means, the beginner-terms explanation of a first run (that is `getting-started-with-mekiki`); does not judge how a skill is written — its prose, its structure, whether an agent will misread it (that is `reviewing-skills`); does not create a skill (`mekiki new`, `skill-creator`); does not decide whether a skill should exist at all (`skill-evaluator`); does not run evals (`skill-creator` owns that workflow).

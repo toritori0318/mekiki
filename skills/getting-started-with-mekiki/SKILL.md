@@ -6,7 +6,7 @@ description: Takes someone from zero to their first mekiki run - installs the bi
 ## Contract
 - **Trigger**: the user wants their skills looked at but names no command or workflow, or asks what mekiki is, whether it is set up, or where to begin.
 - **Inputs**: optional: a path to a skill tree. Without one, this skill finds the candidates itself and asks the user to pick — it never guesses which corpus was meant.
-- **Preconditions**: none. A missing binary is not a blocker; installing it is step 1. Only a missing Go toolchain stops this skill, and then it says exactly what to install.
+- **Preconditions**: none. A missing binary is not a blocker; installing it is step 1, via Homebrew or the Go toolchain. Only when neither exists does this skill stop, and then it says exactly what to install.
 - **Outputs**: `skill-atlas.html` in the working directory, plus a plain-language first-look summary in the conversation.
 - **Postconditions**: mekiki runs, the user knows their corpus size and error/warning counts, has the Atlas open, and has been told the one next step that fits their situation.
 - **Non-goals**: does not repair findings or produce a repair plan, and does not set up CI gates or baselines beyond explaining them — auditing-skill-corpus owns the operating workflow; does not judge how a skill is written (a review skill's job); does not create skills (`mekiki new`, or skill-creator).
@@ -19,15 +19,18 @@ description: Takes someone from zero to their first mekiki run - installs the bi
 mekiki version
 ```
 
-If that fails, install it — this is the expected case, not an error:
+If that fails, install it — this is the expected case, not an error. Homebrew first
+(no Go toolchain needed), the Go toolchain otherwise:
 
 ```bash
-go install github.com/toritori0318/mekiki@latest
-export PATH="$PATH:$(go env GOPATH)/bin"
+brew install toritori0318/tap/mekiki
+# or, with Go installed:
+go install github.com/toritori0318/mekiki@latest && export PATH="$PATH:$(go env GOPATH)/bin"
 ```
 
-No Go toolchain? Say so plainly ("mekiki is a single Go binary; install Go from
-https://go.dev/dl/ and rerun") and stop. Do not attempt substitute tooling.
+Neither Homebrew nor Go? Say so plainly ("mekiki is a single binary; install Homebrew from
+https://brew.sh or Go from https://go.dev/dl/ and rerun") and stop. Do not attempt
+substitute tooling.
 
 ### 2. Find the corpus — ask, never guess
 

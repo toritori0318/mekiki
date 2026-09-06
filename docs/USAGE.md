@@ -182,11 +182,13 @@ the base tree's tiers would mean linting a corpus the page was never given.
 
 ## Driving the audit from an agent
 
-```bash
-cp -r skills/* ~/.claude/skills/
+```
+/plugin marketplace add toritori0318/mekiki
+/plugin install mekiki@mekiki
 ```
 
-Two skills ship with the repository. `getting-started-with-mekiki` covers the first
+The repository doubles as a Claude Code plugin marketplace, so the two bundled skills
+install as a managed plugin; copying by hand (`cp -r skills/* ~/.claude/skills/`) works too. `getting-started-with-mekiki` covers the first
 contact — install, find the corpus (asking between candidates rather than guessing), first
 lint, first Atlas, and a plain-terms reading of the summary — and deliberately stops short
 of baselines and repairs. `auditing-skill-corpus` is the operating workflow, and exists for

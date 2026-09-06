@@ -1,0 +1,23 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "mekiki",
+  "owner": {
+    "name": "toritori0318"
+  },
+  "metadata": {
+    "description": "Agent Skills for mekiki — a quality gate for a corpus of agent skills",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "mekiki",
+      "source": "./",
+      "version": "0.1.0",
+      "license": "MIT",
+      "author": {
+        "name": "toritori0318"
+      },
+      "description": "Two Agent Skills that drive the mekiki skill-corpus linter: getting-started-with-mekiki takes a newcomer from zero to a first lint and Atlas, and auditing-skill-corpus runs the operating audit — baseline first, delta gating, per-rule repairs."
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 ---
 name: auditing-skill-corpus
-description: Audits a corpus of Agent Skills with the mekiki CLI and turns its findings into repairs. Use this when the user asks to lint, audit or mechanically check their skills, when a skill change needs a gate before review, or when they say 「スキル資産を監査して」「mekiki でチェックして」. For judgement on how a skill is written use reviewing-skills; to create one use skill-creator.
+description: Audits a corpus of Agent Skills with the mekiki CLI and turns its findings into repairs. Use this when the user asks to lint, audit or mechanically check their skills, when a skill change needs a gate before review, or when they say 「スキル資産を監査して」「mekiki でチェックして」. A first-ever run is getting-started-with-mekiki's job; judging prose is a review skill's; creating one is skill-creator's.
 ---
 
 ## Contract
@@ -9,7 +9,7 @@ description: Audits a corpus of Agent Skills with the mekiki CLI and turns its f
 - **Preconditions**: `mekiki version` succeeds. If it does not, run `go install github.com/toritori0318/mekiki@latest` and put `$(go env GOPATH)/bin` on PATH.
 - **Outputs**: `out/<corpus>/auditing-skill-corpus/{YYYYMMDD}_audit/01_findings.json` and `02_repair-plan.md`.
 - **Postconditions**: `01_findings.json` exists, and every error in it appears in the repair plan with either a concrete edit or a question that only the user can answer.
-- **Non-goals**: does not judge how a skill is written — its prose, its structure, whether an agent will misread it (that is `reviewing-skills`); does not create a skill (`mekiki new`, `skill-creator`); does not decide whether a skill should exist at all (`skill-evaluator`); does not run evals (`skill-creator` owns that workflow).
+- **Non-goals**: does not handle the very first contact — installing the binary, discovering which corpus the user even means, the beginner-terms explanation of a first run (that is `getting-started-with-mekiki`); does not judge how a skill is written — its prose, its structure, whether an agent will misread it (that is `reviewing-skills`); does not create a skill (`mekiki new`, `skill-creator`); does not decide whether a skill should exist at all (`skill-evaluator`); does not run evals (`skill-creator` owns that workflow).
 
 ## Steps
 

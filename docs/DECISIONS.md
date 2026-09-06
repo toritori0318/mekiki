@@ -180,7 +180,20 @@ corpus size at the time that decision was made.
     and body, so in the body it would trip the rules it explains. A test asserts the skill
     lints clean, which makes it a standing check on the rules themselves.
 
-21. **Prose heuristics ignore identifiers** — inline code, link targets, quoted strings and
+21. **A second bundled skill for the first contact (`getting-started-with-mekiki`)** — it
+    too had to clear the ladder, and the deciding question was why not grow
+    `auditing-skill-corpus` instead. Because the two situations pull the Contract in
+    opposite directions: a first contact should do everything itself except choose the
+    corpus (install, run, summarise — asking a newcomer about baselines is noise), while an
+    audit should *stop* at every operating decision (the baseline, a guard's name, whether a
+    duplicate is deliberate). One skill serving both either asks too much of a beginner or
+    decides too much for an operator, and its description would have to carry both trigger
+    vocabularies at once — past the length cap and toward exactly the over-firing the
+    conventions warn about. The split is policed mechanically: disjoint quoted trigger
+    phrases (L23 runs on every lint of `skills/`), mutual redirection in both descriptions
+    and Non-goals, and each skill's eval near-misses aim at the other.
+
+22. **Prose heuristics ignore identifiers** — inline code, link targets, quoted strings and
     file paths are stripped before the prose rules look at a line. A skill name in backticks
     or a filename is a reference, not a description of work; this accounted for every
     remaining L6 false positive on a real corpus.

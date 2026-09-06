@@ -1,23 +1,90 @@
 [
-  { "query": "Audit our skill corpus and tell me what needs fixing", "should_trigger": true },
-  { "query": "Run the linter over plugins/ and summarise the errors", "should_trigger": true },
-  { "query": "スキル資産を監査して", "should_trigger": true },
-  { "query": "mekiki でチェックして", "should_trigger": true },
-  { "query": "Is this skills PR safe to merge? Check it mechanically first", "should_trigger": true },
-  { "query": "How many of our skills have no Contract block?", "should_trigger": true },
-  { "query": "Show me which skills would fail CI right now", "should_trigger": true },
-  { "query": "We took over another team's plugins — what shape are they in?", "should_trigger": true },
-  { "query": "Build me the one-page view of every skill we ship", "should_trigger": true },
-  { "query": "この差分でスキルの品質が下がっていないか見て", "should_trigger": true },
-
-  { "query": "Review the wording of this SKILL.md — will an agent misread step 3?", "should_trigger": false },
-  { "query": "スキルをレビューして。参照整合性とSSOTの観点で", "should_trigger": false },
-  { "query": "Write me a new skill for drafting weekly plans", "should_trigger": false },
-  { "query": "これスキル化した方がいい？", "should_trigger": false },
-  { "query": "Run the evals for this skill and tell me the pass rate", "should_trigger": false },
-  { "query": "Review this Go pull request for correctness bugs", "should_trigger": false },
-  { "query": "Audit our AWS IAM policies for over-broad permissions", "should_trigger": false },
-  { "query": "Lint the TypeScript in src/ and fix the errors", "should_trigger": false },
-  { "query": "Why did Claude not pick up my skill when I asked for a report?", "should_trigger": false },
-  { "query": "Summarise what changed in the last ten commits", "should_trigger": false }
+  {
+    "query": "Audit our skill corpus and tell me what needs fixing",
+    "should_trigger": true
+  },
+  {
+    "query": "Run the linter over plugins/ and summarise the errors",
+    "should_trigger": true
+  },
+  {
+    "query": "スキル資産を監査して",
+    "should_trigger": true
+  },
+  {
+    "query": "mekiki でチェックして",
+    "should_trigger": true
+  },
+  {
+    "query": "Is this skills PR safe to merge? Check it mechanically first",
+    "should_trigger": true
+  },
+  {
+    "query": "How many of our skills have no Contract block?",
+    "should_trigger": true
+  },
+  {
+    "query": "Show me which skills would fail CI right now",
+    "should_trigger": true
+  },
+  {
+    "query": "We took over another team's plugins — what shape are they in?",
+    "should_trigger": true
+  },
+  {
+    "query": "Build me the one-page view of every skill we ship",
+    "should_trigger": true
+  },
+  {
+    "query": "この差分でスキルの品質が下がっていないか見て",
+    "should_trigger": true
+  },
+  {
+    "query": "Review the wording of this SKILL.md — will an agent misread step 3?",
+    "should_trigger": false
+  },
+  {
+    "query": "スキルをレビューして。参照整合性とSSOTの観点で",
+    "should_trigger": false
+  },
+  {
+    "query": "Write me a new skill for drafting weekly plans",
+    "should_trigger": false
+  },
+  {
+    "query": "これスキル化した方がいい？",
+    "should_trigger": false
+  },
+  {
+    "query": "Run the evals for this skill and tell me the pass rate",
+    "should_trigger": false
+  },
+  {
+    "query": "Review this Go pull request for correctness bugs",
+    "should_trigger": false
+  },
+  {
+    "query": "Audit our AWS IAM policies for over-broad permissions",
+    "should_trigger": false
+  },
+  {
+    "query": "Lint the TypeScript in src/ and fix the errors",
+    "should_trigger": false
+  },
+  {
+    "query": "Why did Claude not pick up my skill when I asked for a report?",
+    "should_trigger": false
+  },
+  {
+    "query": "Summarise what changed in the last ten commits",
+    "should_trigger": false
+  },
+  {
+    "query": "I've never used mekiki — install it and take a first look at my skills",
+    "should_trigger": false
+  },
+  {
+    "query": "mekiki って何？何から始めればいい？",
+    "should_trigger": false
+  }
 ]

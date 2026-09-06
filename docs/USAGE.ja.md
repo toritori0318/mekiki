@@ -177,10 +177,13 @@ Tier は意図的に比較**しません**。スナップショットは Tier �
 ## エージェントに監査を回させる
 
 ```bash
-cp -r skills/auditing-skill-corpus ~/.claude/skills/
+cp -r skills/* ~/.claude/skills/
 ```
 
-同梱の Agent Skill が担うのは、この文書のうち読み飛ばされる部分——**順序**です。指摘を読む前に
+同梱スキルは2つです。`getting-started-with-mekiki` は初回接触——インストール、コーパスの
+発見（候補が複数なら推測せず確認）、初回の lint と Atlas、要約の平易な読み下し——を担い、
+baseline と修復には意図的に踏み込みません。`auditing-skill-corpus` が運用ワークフローで、
+この文書のうち読み飛ばされる部分——**順序**——のために存在します。指摘を読む前に
 baseline を決め、継承した積み残しではなく差分でゲートし、規則が名指しした層で直す（引っかかった
 文を消して済ませない）、ガード名が無ければ捏造せず訊く。規則ごとの修復手順は同スキルの
 `references/rule-playbook.md` にあります。「その規則が何か」ではなく「**どう直すか**」を書いた

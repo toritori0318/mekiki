@@ -575,20 +575,29 @@ did.
 - Output stability: findings are ordered deterministically (severity → skill → rule → line),
   so CI output and snapshots can be diffed.
 
-## 11. The bundled skill
+## 11. The bundled skills
 
-`skills/auditing-skill-corpus/` is an Agent Skill that drives this tool. It exists because
-the findings mekiki prints are self-explanatory while the **order the work happens in** is
-not, and that ordering is where an agent goes wrong: it lints an inherited corpus and starts
-editing, when the first move is to settle the baseline; it reads warnings as a to-do list; it
-repairs a prose-heuristic finding by deleting the sentence; and, asked to satisfy a guard rule
-with no guard configured, it invents a name.
+`skills/` ships two Agent Skills that drive this tool, split by situation rather than by
+feature. `auditing-skill-corpus` exists because the findings mekiki prints are
+self-explanatory while the **order the work happens in** is not, and that ordering is where
+an agent goes wrong: it lints an inherited corpus and starts editing, when the first move is
+to settle the baseline; it reads warnings as a to-do list; it repairs a prose-heuristic
+finding by deleting the sentence; and, asked to satisfy a guard rule with no guard
+configured, it invents a name. `getting-started-with-mekiki` covers the contact *before*
+any of that is relevant — the binary is not installed, the user does not know which corpus
+they mean or what an error count implies — and deliberately stops where operating decisions
+begin: it never takes the baseline decision and never repairs.
 
 | Path | Holds |
 |---|---|
-| `SKILL.md` | The ordering: baseline first, the command per question, how to sort the output, what to ask rather than decide |
-| `references/rule-playbook.md` | Per-rule repair guidance, grouped by the repair rather than by rule number |
-| `evals/evals.json`, `evals/eval_queries.json` | Both official eval formats, 3 cases and 20 queries (10 should-trigger, 10 near-misses aimed at the neighbouring skills) |
+| `auditing-skill-corpus/SKILL.md` | The ordering: baseline first, the command per question, how to sort the output, what to ask rather than decide |
+| `auditing-skill-corpus/references/rule-playbook.md` | Per-rule repair guidance, grouped by the repair rather than by rule number |
+| `getting-started-with-mekiki/SKILL.md` | The first contact: install, discover the corpus (ask between candidates), first lint and Atlas, plain-terms summary, one next step |
+| `*/evals/` | Both official eval formats per skill; each one's near-misses aim at the other and at the neighbouring skills |
+
+The two must not compete for activation, so they quote **disjoint trigger phrases** (L23
+checks this on every lint of `skills/`) and each names the other in its description and
+Non-goals: first-ever run → getting-started; anything after that → auditing.
 
 Two structural notes. The repair guidance sits in `references/` both because it is needed
 only once a finding is in hand (§Context minimality's layer test) and for a mechanical
@@ -598,5 +607,5 @@ skill claims the *mechanical* audit only; judgement about how a skill is written
 review skill, which its Non-goals names explicitly so the two do not compete for activation.
 
 **The invariant:** `mekiki lint skills` reports nothing, and `TestBundledSkillPassesItsOwnLinter`
-asserts it. A new rule that the one skill written to satisfy the conventions cannot satisfy
+asserts it. A new rule that the skills written to satisfy the conventions cannot satisfy
 is a rule to reconsider before it ships.

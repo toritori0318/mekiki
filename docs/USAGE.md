@@ -183,10 +183,14 @@ the base tree's tiers would mean linting a corpus the page was never given.
 ## Driving the audit from an agent
 
 ```bash
-cp -r skills/auditing-skill-corpus ~/.claude/skills/
+cp -r skills/* ~/.claude/skills/
 ```
 
-The bundled Agent Skill exists for the part of this document a reader skips: the **order**.
+Two skills ship with the repository. `getting-started-with-mekiki` covers the first
+contact — install, find the corpus (asking between candidates rather than guessing), first
+lint, first Atlas, and a plain-terms reading of the summary — and deliberately stops short
+of baselines and repairs. `auditing-skill-corpus` is the operating workflow, and exists for
+the part of this document a reader skips: the **order**.
 It settles the baseline before reading a finding, gates a change on its delta rather than the
 inherited backlog, repairs at the layer a rule names instead of deleting the sentence that
 tripped it, and asks rather than invents when a guard name is missing. Per-rule repair

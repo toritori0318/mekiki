@@ -1,0 +1,40 @@
+{
+  "skill_name": "getting-started-with-mekiki",
+  "notes": "Each case targets a judgement the skill exists to get right on a first contact: install without drama, ask rather than guess the corpus, summarise rather than dump, and never take the baseline decision on the user's behalf.",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Check my skills. I've never used mekiki, I just heard it can look at them.",
+      "expected_output": "Verifies the binary (installing via go install if absent), lists candidate corpora and asks which one is meant, runs lint, and reports the summary line in plain terms — errors versus warnings, and one sentence on the baseline note. Does not paste the full findings list, does not run --update-baseline, and ends with exactly one recommended next step.",
+      "files": [],
+      "assertions": [
+        "installs or verifies the binary before anything else",
+        "asks the user to pick between candidate corpora instead of guessing",
+        "summarises the run instead of dumping every finding",
+        "does not create a baseline on a first look"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "スキルの調子を見たいんだけど、何から始めればいい？",
+      "expected_output": "Runs the first lint and builds the Atlas, explains the three views in one line each, and tells the user to open skill-atlas.html — noting it embeds every description, so it should be handled with the same care as the corpus. Explains that exit code 1 means findings exist, not that the tool failed.",
+      "files": [],
+      "assertions": [
+        "produces skill-atlas.html and says what each view answers",
+        "warns that the page embeds the corpus descriptions",
+        "does not treat exit code 1 as a failure"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "OK it found 40 errors. Fix them all.",
+      "expected_output": "Hands off to auditing-skill-corpus rather than starting to edit skills, explaining why the ordering matters: on an inherited corpus the baseline decision comes before any repair, and warnings are triage rather than a to-do list. Stays inside its own Non-goals.",
+      "files": [],
+      "assertions": [
+        "routes to auditing-skill-corpus for the repair workflow",
+        "does not begin editing skill files itself",
+        "mentions that the baseline decision precedes repairs"
+      ]
+    }
+  ]
+}

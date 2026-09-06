@@ -1,0 +1,23 @@
+[
+  { "query": "Check my skills — I've never used any tooling for this", "should_trigger": true },
+  { "query": "What is mekiki and how do I start using it?", "should_trigger": true },
+  { "query": "スキルの調子を見たい", "should_trigger": true },
+  { "query": "mekiki を使ってみたいけど何から始めればいい？", "should_trigger": true },
+  { "query": "Is mekiki set up on this machine? Get it working and show me my skills", "should_trigger": true },
+  { "query": "I have skills somewhere in ~/.claude — take a first look at them", "should_trigger": true },
+  { "query": "Give me a beginner-friendly overview of what state my skills are in", "should_trigger": true },
+  { "query": "初めてなので、スキル資産をとりあえず一度見てほしい", "should_trigger": true },
+  { "query": "Install the skill linter and run it once so I can see what it says", "should_trigger": true },
+  { "query": "Show me that one-page atlas thing for my skills, I don't know the command", "should_trigger": true },
+
+  { "query": "スキル資産を監査して、修正計画まで作って", "should_trigger": false },
+  { "query": "Set up the baseline and gate this PR on the delta", "should_trigger": false },
+  { "query": "Fix the L8 error mekiki reported in my billing skill", "should_trigger": false },
+  { "query": "この差分でスキルの品質が下がっていないか mekiki でチェックして", "should_trigger": false },
+  { "query": "Review the wording of this SKILL.md — is step 3 ambiguous?", "should_trigger": false },
+  { "query": "Write me a new skill for drafting weekly plans", "should_trigger": false },
+  { "query": "Run the evals for this skill and report the pass rate", "should_trigger": false },
+  { "query": "How do I get started with Go modules?", "should_trigger": false },
+  { "query": "Check my Kubernetes manifests for problems", "should_trigger": false },
+  { "query": "Add SARIF upload for mekiki to our GitHub Actions workflow", "should_trigger": false }
+]

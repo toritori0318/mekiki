@@ -157,18 +157,23 @@ number of skills.
 
 ## Driving it from an agent
 
-`skills/auditing-skill-corpus/` is an Agent Skill that teaches a coding agent to run this
-audit the way it should be run: settle the baseline before reading a single finding, gate a
-change on its delta rather than on the inherited backlog, repair at the layer the rule names
-instead of deleting the sentence that tripped it, and **ask** rather than invent a guard
-name. Copy it where your agent looks for skills:
+`skills/` ships two Agent Skills, one per situation:
+
+- **`getting-started-with-mekiki`** — the zero-knowledge path. Say "check my skills" and it
+  installs the binary, finds your corpus (asking rather than guessing between candidates),
+  runs the first lint and Atlas, and explains the result in plain terms — without dumping
+  findings or taking the baseline decision for you.
+- **`auditing-skill-corpus`** — the operating workflow. It settles the baseline before
+  reading a single finding, gates a change on its delta rather than the inherited backlog,
+  repairs at the layer the rule names instead of deleting the sentence that tripped it, and
+  **asks** rather than invents a guard name.
 
 ```bash
-cp -r skills/auditing-skill-corpus ~/.claude/skills/
+cp -r skills/* ~/.claude/skills/
 ```
 
-It is held to the conventions it teaches — `mekiki lint skills` reports nothing, it reaches
-T3, and a test in this repository keeps it that way.
+Both are held to the conventions they teach — `mekiki lint skills` reports nothing, both
+reach T3, and a test in this repository keeps it that way.
 
 ## The conventions
 

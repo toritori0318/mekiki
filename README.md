@@ -2,6 +2,8 @@
 
 **A discerning eye for your agent skills.**
 
+日本語版: **[README.ja.md](README.ja.md)**
+
 *mekiki* (目利き) is the Japanese word for the trained eye that judges quality and
 authenticity at a glance. This is a single binary that turns that eye on a corpus of Agent
 Skills (`SKILL.md`) — the ones your team ships, not the ones you download.
@@ -21,8 +23,6 @@ installed — and shows the whole estate on one page.
 
 Nothing beyond the Go standard library. No configuration needed to start. The inspected
 tree is only ever read.
-
-日本語版: **[README.ja.md](README.ja.md)**
 
 ## In thirty seconds
 

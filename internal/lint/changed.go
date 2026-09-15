@@ -2,6 +2,7 @@ package lint
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"sort"
@@ -39,10 +40,19 @@ func Scope(findings []Finding, dirs map[string]string, changed []string) ScopeRe
 
 	// A skill the change deleted is discoverable nowhere, so its own findings are gone. It is
 	// still the most consequential thing a skills pull request can do.
+	//
+	// Absent from dirs is not the same as deleted, so the file itself is what decides. The
+	// change is read from the whole repository while dirs holds only what the linted PATH
+	// discovered, and PATH may be one plugin or one skill directory; a skill edited outside it
+	// is missing from dirs and still right there on disk. Trusting dirs alone reported every
+	// such edit as a deletion — the loudest note the report has, on the calmest change.
 	var removed []string
 	for _, p := range changed {
 		if claimed[p] || filepath.Base(p) != "SKILL.md" {
 			continue
+		}
+		if _, err := os.Stat(p); err == nil {
+			continue // outside the linted path, not gone: counted below as unexamined
 		}
 		claimed[p] = true
 		key := skill.KeyFor(filepath.Dir(p))

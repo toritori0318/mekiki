@@ -281,3 +281,29 @@ func TestScopeSeesThroughASymlinkedCorpusPath(t *testing.T) {
 		t.Errorf("Skills = %d, want the linked skill counted as touched", r.Skills)
 	}
 }
+
+func TestScopeDoesNotCallAnUnlintedSkillDeleted(t *testing.T) {
+	// `mekiki lint pluginA --changed` reads the whole repository's diff but discovers only
+	// the skills under pluginA. A skill edited under pluginB is absent from dirs without
+	// having been deleted, and "deleted" is the one claim this note must never get wrong.
+	// Out of the linted path is not gone: it belongs with the files nothing examined.
+	root := t.TempDir()
+	outside := filepath.Join(root, "plugins", "other", "skills", "beta")
+	if err := os.MkdirAll(outside, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	edited := filepath.Join(outside, "SKILL.md")
+	if err := os.WriteFile(edited, []byte("---\nname: beta\n---\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	linted := map[string]string{"acme:alpha": filepath.Join(root, "plugins", "acme", "skills", "alpha")}
+
+	r := Scope(nil, linted, []string{edited})
+
+	if anyNoteContains(r.Notes, "no longer present") {
+		t.Errorf("notes = %q, want no deletion claimed for a skill that is still on disk", r.Notes)
+	}
+	if !anyNoteContains(r.Notes, "1 changed file") {
+		t.Errorf("notes = %q, want the unlinted skill counted as unexamined", r.Notes)
+	}
+}

@@ -23,6 +23,34 @@ Exit codes: **0** no errors, **1** errors present, **2** usage or runtime failur
 cannot accidentally turn a red build green. Warnings never fail a build: a rule that can
 produce false positives belongs in review rather than in a merge block.
 
+## Checking a pull request
+
+`--changed` narrows the report to the skills the change touched, which is what "lint this
+pull request" asks for:
+
+```bash
+mekiki lint path/to/skills --changed                    # against origin/HEAD
+mekiki lint path/to/skills --changed --base release-1   # against any other revision
+```
+
+The corpus is still discovered and every rule still evaluated in full: the cross-cutting
+rules cannot see a duplicated reference or a broken delegation from one skill alone. Only the
+report is narrowed, and a finding survives the narrowing when it belongs to a touched skill
+**or when its message names one** — so deleting a skill still surfaces the flow it broke in a
+skill this change never opened.
+
+Unlike `--severity`, `--changed` narrows the exit code too. The asymmetry is deliberate: a
+severity filter must never turn a red build green, whereas failing a pull request on an error
+it neither introduced nor touched is the behaviour scoping exists to remove.
+
+Read the notes before the findings. An empty report under a note saying no skill was touched
+means the change never reached a skill, not that the corpus is clean; a skill reported as no
+longer present was deleted by this change.
+
+Uncommitted and untracked work counts as part of the change, so the same command answers for
+a branch you have not pushed. A repository with no remote has no `origin/HEAD`, and the run
+stops with a message naming `--base` rather than guessing.
+
 ## Gating a change in CI
 
 Two gates that answer different questions.
@@ -33,8 +61,11 @@ Two gates that answer different questions.
 mekiki lint path/to/skills --format json --severity error   # exit 1 when errors exist
 ```
 
-**Did this change make it worse?** On an inherited corpus that is the only answerable
-question: a plain gate fails every pull request until the whole backlog is cleared.
+**Did this change make it worse?** This is a different question from the one above: `lint
+--changed` reports the state of the skills a change touched, while `diff` reports whether the
+corpus regressed. A pull request that edits a skill without altering which rules fire is a
+`no change` under `diff` and can still be full of findings under `--changed`. On an inherited
+corpus regression is the only answerable question: a plain gate fails every pull request until the whole backlog is cleared.
 `mekiki diff` compares two `--format json` snapshots — it is a diff of *findings*, not of
 files — and exits 1 **only when the change added an error**. An added warning passes and
 stays in the review.
@@ -68,6 +99,8 @@ jobs:
       - run: |
           go install github.com/toritori0318/mekiki@latest
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - name: Lint what this pull request touched
+        run: mekiki lint path/to/skills --changed --base origin/${{ github.base_ref }}
       - name: Snapshot base and head
         run: |
           git worktree add ../base ${{ github.event.pull_request.base.sha }}

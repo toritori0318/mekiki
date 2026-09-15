@@ -16,7 +16,7 @@ installed — and shows the whole estate on one page.
 
 | Command | What it does |
 |---|---|
-| `mekiki lint` | Checks a corpus against twenty-five numbered rules — from arithmetic left in prose for a model to execute, to guards that are declared but never invoked, to two skills claiming the same user request. |
+| `mekiki lint` | Checks a corpus against twenty-five numbered rules — from arithmetic left in prose for a model to execute, to guards that are declared but never invoked, to two skills claiming the same user request. `--changed` narrows the report to the skills a pull request touched. |
 | `mekiki atlas` | Renders the whole estate as **one self-contained HTML page**: a board, every workflow as a pipeline you can walk, and a sortable catalogue. |
 | `mekiki new` | Scaffolds a skill that is compliant from birth: Contract, Gotchas and both official eval formats, pre-filled. |
 | `mekiki diff` | Reports only what a pull request **added** and **resolved**, so review sees the delta and not the backlog. |

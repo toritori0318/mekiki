@@ -210,6 +210,29 @@ corpus size at the time that decision was made.
     or a filename is a reference, not a description of work; this accounted for every
     remaining L6 false positive on a real corpus.
 
+24. **"Lint this pull request" is a flag on `lint`, not a `mekiki pr` subcommand (`--changed`)** —
+    the corpus-level answer already existed as `diff`, and it kept being handed the wrong
+    question: `diff` compares two sets of findings, so a pull request that edits a skill
+    without altering which rules fire reports `no change` while the skills it touched are
+    full of errors. The missing answer was "what state are the touched skills in", which is
+    a narrowing of `lint`, not a new verb. A subcommand would also have to re-expose
+    `--format`, `--severity`, `--config` and `--baseline`, and `pr` would be a lie: the input
+    is a git revision, not a pull-request number. The default base is `origin/HEAD`, so the
+    common case needs no argument, which is where the ergonomics of a dedicated verb were
+    actually going to come from. If GitHub integration is ever added — resolving a PR number,
+    posting the comment — that is when the verb earns its name.
+
+25. **Narrowing applies to the report, never to the evaluation** — the cross-cutting rules
+    (duplicated references, a flow naming a skill that does not exist, two skills claiming
+    the same trigger) are the ones most worth having on a pull request, and none of them can
+    say anything from the changed files alone. So the whole corpus is discovered and every
+    rule evaluated, and only the output is scoped. A finding survives when it belongs to a
+    touched skill **or when its message names one**, which is what keeps the flow a deletion
+    broke visible in a skill the change never opened. Unlike `--severity`, the narrowing does
+    move the exit code: a severity filter turning a red build green is a failure mode, while
+    a pull request failing on an error it neither introduced nor touched is the failure mode
+    this exists to remove.
+
 ## Rejected
 
 - **Delegating validation to the official `skills-ref`** — it states it is "intended for

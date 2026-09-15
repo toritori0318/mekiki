@@ -22,6 +22,32 @@ exit code は **0**（error なし）、**1**（error あり）、**2**（使い
 うっかり緑になることはありません。warn でビルドは落ちません — 誤検知があり得る規則は、
 マージを止めるのではなくレビューで扱うべきものだからです。
 
+## PR を検査する
+
+「この PR を lint して」に答えるのは `--changed` です。変更が触ったスキルだけを報告します。
+
+```bash
+mekiki lint path/to/skills --changed                    # origin/HEAD と比較
+mekiki lint path/to/skills --changed --base release-1   # 任意のリビジョンと比較
+```
+
+資産の探索も規則の評価も全体に対して行います。横断規則は、参照の重複や壊れた委譲を1つの
+スキルだけ見ても判定できないからです。絞るのは**報告だけ**で、触ったスキルの指摘に加えて
+**メッセージが触ったスキルを名指ししている指摘**も残します。スキルを1つ削除したとき、その
+PR が開いてすらいない別スキルで壊れたフローが消えないのはこのためです。
+
+`--severity` と違い、`--changed` は exit code も絞ります。この非対称は意図的です。severity
+での絞り込みで赤いビルドが緑になってはいけませんが、持ち込んでも触ってもいない error で PR
+を落とすことこそ、この絞り込みが取り除こうとしている挙動だからです。
+
+指摘より先に note を読んでください。「no skill was touched」が付いた空の報告は、変更が
+スキルまで届かなかったという意味で、資産がきれいだという意味ではありません。「no longer
+present」と報告されたスキルは、この変更が削除したものです。
+
+未コミット・未追跡の変更も「この変更」に含めます。push していないブランチでも同じコマンドで
+答えが出ます。remote がないリポジトリには `origin/HEAD` がないので、推測せず `--base` を
+案内して止まります。
+
 ## CI で変更をゲートする
 
 答える問いが違う2つのゲートがあります。
@@ -32,7 +58,10 @@ exit code は **0**（error なし）、**1**（error あり）、**2**（使い
 mekiki lint path/to/skills --format json --severity error   # error があれば exit 1
 ```
 
-**この変更が資産を悪くしたか？** 引き継いだ資産では答えられるのはこちらだけです。素の
+**この変更が資産を悪くしたか？** これは上とは別の問いです。`lint --changed` は変更が触った
+スキルの**現状**を、`diff` は資産が**悪化したか**を報告します。指摘の顔ぶれを変えずにスキルを
+編集した PR は `diff` では `no change` ですが、`--changed` では指摘だらけということがあります。
+引き継いだ資産で答えられる悪化の問いは、こちらだけです。素の
 ゲートでは、積み残しを全部返すまで全 PR が落ちます。`mekiki diff` は `--format json` の
 スナップショット2つを比べます（**ファイルの diff ではなく指摘の diff**）。exit 1 になるのは
 **変更が error を増やしたときだけ**。増えたのが warn なら通し、レビューに残します。
@@ -66,6 +95,8 @@ jobs:
       - run: |
           go install github.com/toritori0318/mekiki@latest
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - name: この PR が触ったスキルを検査する
+        run: mekiki lint path/to/skills --changed --base origin/${{ github.base_ref }}
       - name: base と head のスナップショット
         run: |
           git worktree add ../base ${{ github.event.pull_request.base.sha }}

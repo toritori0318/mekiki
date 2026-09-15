@@ -361,6 +361,7 @@ output.
 ```
 mekiki lint  [PATH...] [--format text|json|sarif] [--severity error|warn]
                        [--baseline baseline.json] [--config config.json] [--update-baseline]
+                       [--changed [--base REV]]
 mekiki new   NAME      [--out DIR] [--type action|knowledge|util]
                        [--risk billing|write|browser|publish] [--config config.json]
 mekiki atlas [PATH...] [--out skill-atlas.html] [--config …] [--baseline …]
@@ -371,6 +372,19 @@ mekiki diff  BASE.json HEAD.json [--format text|json|sarif]
 - With no PATH, `MEKIKI_TARGET` is consulted; if that is unset it is an error. A PATH may be
   a plugin tree or a single skill directory.
 - `--severity` filters **display only** and does not affect the exit code.
+- `--changed` narrows the report to the skills a change touched, and narrows the exit code
+  with it. The asymmetry against `--severity` is deliberate: a severity filter must never
+  turn a red build green, whereas a pull request failing on an error it neither introduced
+  nor touched is the behaviour scoping exists to remove. The corpus is still discovered and
+  every rule still evaluated in full — the cross-cutting rules cannot see a duplicated
+  reference or a broken delegation from one skill alone. A finding survives the narrowing
+  when it belongs to a touched skill, or when its message names one, which is how the damage
+  a change did to a skill it never edited stays visible. `--base` defaults to `origin/HEAD`;
+  an unresolvable base is an error naming the flag rather than a guess. Uncommitted and
+  untracked work counts as part of the change, since a local check usually is not committed.
+  Skill directories and git paths are compared with symlinks resolved and relative paths made
+  absolute, without which a corpus reached as `skills/` or through a linked temp directory
+  reads as wholly deleted.
 - `--format sarif` emits a SARIF 2.1.0 log for GitHub code scanning. On `diff` it carries
   the **added** findings only, so an inherited backlog is never annotated on a pull
   request. Result URIs are relative to the working directory when the file lies under it.

@@ -45,6 +45,7 @@ const usage = `mekiki — a discerning eye for your agent skills
 
 Usage:
   mekiki lint  [PATH...]        check a skill corpus against the conventions
+                                --changed narrows the report to the skills a change touched
   mekiki new   NAME             generate a convention-compliant skill skeleton
   mekiki atlas [PATH...]        build the Skill Atlas (single self-contained HTML page)
   mekiki diff  BASE HEAD        report what two lint snapshots added and resolved
@@ -213,6 +214,8 @@ func cmdLint(argv []string) int {
 	cfgPath := fs.str("config", defaultPath("config.json"),
 		"org-specific settings (guard names, detection patterns)")
 	update := fs.bool("update-baseline", "freeze the current skills as pre-existing and exit")
+	changed := fs.bool("changed", "report only the skills this change touched (see --base)")
+	base := fs.str("base", lint.DefaultBase, "revision --changed measures the change against")
 	if err := fs.parse(argv); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 2
@@ -239,10 +242,23 @@ func cmdLint(argv []string) int {
 		return 2
 	}
 	sum := res.Summary()
-	shown := res.Findings
+	found := res.Findings
+	if *changed {
+		// The repository is located from the first inspected path, so the corpus may sit in a
+		// checkout that is not the working directory.
+		files, err := lint.ChangedFiles(gitDirFor(paths[0]), *base)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return 2
+		}
+		scoped := lint.Scope(found, res.SkillDirs, files)
+		found, sum = scoped.Findings, scoped.Summary()
+		res.Notes = append(res.Notes, scoped.Notes...)
+	}
+	shown := found
 	if *severity == "error" {
 		shown = nil
-		for _, f := range res.Findings {
+		for _, f := range found {
 			if f.Severity == lint.Error {
 				shown = append(shown, f)
 			}
@@ -284,6 +300,16 @@ func cmdLint(argv []string) int {
 		return 1
 	}
 	return 0
+}
+
+// gitDirFor returns the directory git should be run from for an inspected path. A file is
+// asked about from the directory holding it.
+func gitDirFor(p string) string {
+	p = expandHome(p)
+	if fi, err := os.Stat(p); err == nil && !fi.IsDir() {
+		return filepath.Dir(p)
+	}
+	return p
 }
 
 // ---- mekiki new ----

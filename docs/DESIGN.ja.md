@@ -297,6 +297,7 @@ mekiki/
 ```
 mekiki lint  [PATH...] [--format text|json|sarif] [--severity error|warn]
                        [--baseline baseline.json] [--config config.json] [--update-baseline]
+                       [--changed [--base REV]]
 mekiki new   NAME      [--out DIR] [--type action|knowledge|util]
                        [--risk billing|write|browser|publish] [--config config.json]
 mekiki atlas [PATH...] [--out skill-atlas.html] [--config …] [--baseline …]
@@ -307,6 +308,16 @@ mekiki diff  BASE.json HEAD.json [--format text|json|sarif]
 - PATH 省略時は環境変数 `MEKIKI_TARGET` を見る（未設定はエラー）。PATH はプラグイン群でも
   個別スキルのディレクトリでもよい
 - `--severity` は**表示のフィルタのみ**で exit code には影響しない
+- `--changed` は変更が触ったスキルに報告を絞り、exit code も一緒に絞る。`--severity` との
+  非対称は意図的で、severity での絞り込みが赤いビルドを緑にしてはならないのに対し、持ち込んで
+  も触ってもいない error で PR が落ちることこそ、この絞り込みが取り除く対象だから。資産の
+  探索も規則の評価も全体に対して行う — 横断規則は1つのスキルだけ見ても参照の重複や壊れた委譲を
+  判定できない。指摘が残るのは、触ったスキルのものか、**メッセージが触ったスキルを名指しして
+  いる**場合。これにより、その変更が編集していないスキルに与えた損傷が消えない。`--base` の
+  既定は `origin/HEAD` で、解決できないときは推測せずフラグ名を挙げてエラーにする。未コミット
+  ・未追跡の変更も「この変更」に含める（手元の確認は通常コミット前だから）。スキルのディレク
+  トリと git のパスは、シンボリックリンクを解決し相対パスを絶対化してから比較する。これがない
+  と `skills/` 指定やリンク越しの一時ディレクトリで資産全体が削除済みに見える
 - `--format sarif` は GitHub code scanning 用の SARIF 2.1.0 を出力する。`diff` に付けた
   場合は **added の指摘のみ**を載せるので、継承した積み残しが PR に注記されることはない。
   結果の URI は、対象ファイルが作業ディレクトリ配下にあれば相対パスになる

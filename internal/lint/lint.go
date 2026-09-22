@@ -44,6 +44,10 @@ type Result struct {
 	// SkillDirs maps each key to the directory it was discovered in, which is how `--changed`
 	// decides whether a changed file belongs to a skill.
 	SkillDirs map[string]string `json:"-"`
+	// Parsed and Config are the skills as read and the settings they were read with, for a
+	// later pass (`--jev`) that asks about them without discovering the corpus twice.
+	Parsed []*skill.Skill `json:"-"`
+	Config *config.Config `json:"-"`
 }
 
 // Summary counts findings by severity.
@@ -118,7 +122,7 @@ func Run(opts Options) (*Result, error) {
 	}
 	sort.Strings(keys)
 	return &Result{Findings: findings, Notes: notes, Skills: len(skills),
-		SkillKeys: keys, SkillDirs: dirs}, nil
+		SkillKeys: keys, SkillDirs: dirs, Parsed: skills, Config: cfg}, nil
 }
 
 func joinProblems(ps []string) string {

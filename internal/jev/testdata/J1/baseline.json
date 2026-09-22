@@ -1,0 +1,7 @@
+{
+  "model": "jev-latest",
+  "answers": {
+    "bad-computes/J1:15": 0.95,
+    "clean-judges/J1:15": 0.09
+  }
+}

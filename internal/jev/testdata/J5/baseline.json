@@ -1,0 +1,7 @@
+{
+  "model": "jev-latest",
+  "answers": {
+    "bad-no-owner/J5": 0.96,
+    "clean-owner-named/J5": 0.15
+  }
+}

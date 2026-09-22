@@ -55,3 +55,17 @@ func TestCompareEmptyIsNoDelta(t *testing.T) {
 		t.Error("slices must be non-nil so JSON renders [] rather than null")
 	}
 }
+
+func TestCompareIgnoresJudgedRules(t *testing.T) {
+	// A judged verdict near its cutoff can land on either side between runs, and keyed into
+	// the diff it would read as one added plus one resolved finding. The diff is for the
+	// mechanical rules; the judged ones are read on the lint report itself.
+	base := &Snapshot{Findings: []Finding{{Rule: "J2", Skill: "acme:alpha", Severity: Warn}}}
+	head := &Snapshot{Findings: []Finding{{Rule: "J3", Skill: "acme:alpha", Severity: Warn}, {Rule: "L6", Skill: "acme:alpha", Severity: Warn}}}
+
+	d := Compare(base, head)
+
+	if len(d.Added) != 1 || d.Added[0].Rule != "L6" || len(d.Resolved) != 0 {
+		t.Errorf("Compare = added %+v resolved %+v, want only the L6 add", d.Added, d.Resolved)
+	}
+}

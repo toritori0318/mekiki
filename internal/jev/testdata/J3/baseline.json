@@ -1,0 +1,7 @@
+{
+  "model": "jev-latest",
+  "answers": {
+    "bad-no-redirect/J3": 0.9,
+    "clean-complete/J3": 0.04
+  }
+}

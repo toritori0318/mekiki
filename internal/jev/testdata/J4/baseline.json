@@ -1,0 +1,7 @@
+{
+  "model": "jev-latest",
+  "answers": {
+    "bad-performs/J4:risk_publish": 0.87,
+    "clean-mentions/J4:risk_publish": 0.02
+  }
+}

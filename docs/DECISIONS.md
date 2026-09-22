@@ -233,6 +233,29 @@ corpus size at the time that decision was made.
     a pull request failing on an error it neither introduced nor touched is the failure mode
     this exists to remove.
 
+26. **Judged rules are an opt-in flag on `lint`, in their own package, and never touch the
+    exit code (`--jev`)** — the conventions SKILL_PROTOCOL marks *unenforced (review)* are
+    claims a skill makes about itself held against what it says elsewhere, which is the one
+    class a calibrated classifier is measurably good at and a regular expression is not. But
+    a network call, a key and a non-deterministic answer contradict three of this tool's
+    constraints at once, so they live behind one flag in `internal/jev`, which `internal/lint`
+    never imports; without the flag no socket opens. J findings are warnings, `diff` skips
+    them (a verdict near its cutoff moves between runs and would read as an add plus a
+    resolve), and `--dry-run` prices a run with no key so what would be sent is visible
+    before anything is. The name is the vendor's: the API shape is Jev's, and a neutral
+    `--judge` hid that from the reader. A provider-neutral verb earns its name when a second
+    provider exists, the same order as `mekiki pr`.
+
+27. **Jev adds and annotates; it never suppresses** — J1 appends its probability to the L6
+    finding it judged instead of hiding it, J4 opens the L20 tiers the wording made
+    unactionable as warnings, and no rule consults L8. Safety rules favour recall (decision
+    12), and a model does not treat adversarial text in its state as adversarial while a
+    regular expression cannot be talked out of a match. Cutoffs are fitted on the fixtures
+    under `internal/jev/testdata/` by a live run and replayed in CI without a key; the first
+    fit put every bad case at 0.87 or above and every clean case at 0.15 or below, so 0.5
+    holds for all five. Fixtures are synthetic, so nothing from a
+    real corpus enters the repository.
+
 ## Rejected
 
 - **Delegating validation to the official `skills-ref`** — it states it is "intended for

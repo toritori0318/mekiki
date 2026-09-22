@@ -347,6 +347,7 @@ mekiki/
     ├── skill/                   # discovery, frontmatter parsing, Contract, token estimate
     ├── config/                  # guards and detection patterns
     ├── lint/                    # rules L1-L25, orchestration, baseline, snapshots, diff, SARIF
+    ├── jev/                     # the opt-in judged rules J1-J5 and the only network client
     ├── scaffold/                # skeleton generation
     └── atlas/                   # page model plus the embedded template
 ```
@@ -361,7 +362,7 @@ output.
 ```
 mekiki lint  [PATH...] [--format text|json|sarif] [--severity error|warn]
                        [--baseline baseline.json] [--config config.json] [--update-baseline]
-                       [--changed [--base REV]]
+                       [--changed [--base REV]] [--jev [--dry-run]]
 mekiki new   NAME      [--out DIR] [--type action|knowledge|util]
                        [--risk billing|write|browser|publish] [--config config.json]
 mekiki atlas [PATH...] [--out skill-atlas.html] [--config …] [--baseline …]
@@ -385,6 +386,15 @@ mekiki diff  BASE.json HEAD.json [--format text|json|sarif]
   Skill directories and git paths are compared with symlinks resolved and relative paths made
   absolute, without which a corpus reached as `skills/` or through a linked temp directory
   reads as wholly deleted.
+- `--jev` additionally asks Jev, a calibrated classifier, the five judged rules J1–J5 about
+  the skills in scope: whether an L6 sentence is computation or judgement, whether the
+  Trigger contradicts the description, whether the description says when not to activate,
+  whether publication or destructive-write wording is performed rather than mentioned, and
+  whether Non-goals name an owner. It is opt-in, needs `TYPESAFE_API_KEY`, sends only the
+  skills in scope, reports warnings only, never moves the exit code, and is ignored by
+  `diff`. `--dry-run` prices the run without a key or a socket. Cutoffs are fitted on the
+  labelled fixtures under `internal/jev/testdata/` and replayed in CI without a key
+  (USAGE.md, "Judging with Jev").
 - `--format sarif` emits a SARIF 2.1.0 log for GitHub code scanning. On `diff` it carries
   the **added** findings only, so an inherited backlog is never annotated on a pull
   request. Result URIs are relative to the working directory when the file lies under it.
@@ -584,7 +594,8 @@ did.
 
 - Performance: a full scan of ~200 skills and a few thousand reference files within 60
   seconds. md5 work is bounded by excluding files under 8KB.
-- Dependencies: Go standard library only. No network access. Read-only, except for files the
+- Dependencies: Go standard library only. No network access unless `--jev` is given, and then
+  only to the Jev endpoint with the skills in scope. Read-only, except for files the
   user explicitly asks to be written.
 - Output stability: findings are ordered deterministically (severity → skill → rule → line),
   so CI output and snapshots can be diffed.

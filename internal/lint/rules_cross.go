@@ -392,6 +392,23 @@ func firstNonEmpty(vals ...string) string {
 	return ""
 }
 
+// DelegationTargets is every skill name some flow.json delegates to. Setting
+// disable-model-invocation on one would stop its orchestrator calling it, so L20 and the
+// judged rule J4 both leave these alone.
+func DelegationTargets(skills []*skill.Skill) map[string]bool {
+	targets := map[string]bool{}
+	for _, s := range skills {
+		if f, err := LoadFlow(s.Dir); err == nil && f != nil {
+			for _, e := range f.Flow {
+				if e.Skill != "" {
+					targets[e.Skill] = true
+				}
+			}
+		}
+	}
+	return targets
+}
+
 // ---- L20: autonomous invocation of side-effecting skills (disable-model-invocation) ----
 //
 // Unlike requires:, this flag is the one activation control the runtime actually enforces.
@@ -407,16 +424,7 @@ func firstNonEmpty(vals ...string) string {
 //   - configured guard skills themselves: they describe billing risk without performing it.
 
 func L20(c *Context) []Finding {
-	targets := map[string]bool{}
-	for _, s := range c.Skills {
-		if f, err := LoadFlow(s.Dir); err == nil && f != nil {
-			for _, e := range f.Flow {
-				if e.Skill != "" {
-					targets[e.Skill] = true
-				}
-			}
-		}
-	}
+	targets := DelegationTargets(c.Skills)
 	guards := c.Config.GuardNames()
 	var out []Finding
 	for _, s := range c.Skills {

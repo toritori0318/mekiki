@@ -14,6 +14,7 @@ import (
 
 	"github.com/toritori0318/mekiki/internal/atlas"
 	"github.com/toritori0318/mekiki/internal/config"
+	"github.com/toritori0318/mekiki/internal/jev"
 	"github.com/toritori0318/mekiki/internal/lint"
 	"github.com/toritori0318/mekiki/internal/scaffold"
 )
@@ -46,6 +47,7 @@ const usage = `mekiki — a discerning eye for your agent skills
 Usage:
   mekiki lint  [PATH...]        check a skill corpus against the conventions
                                 --changed narrows the report to the skills a change touched
+                                --jev also asks Jev the judged rules (opt-in, needs a key)
   mekiki new   NAME             generate a convention-compliant skill skeleton
   mekiki atlas [PATH...]        build the Skill Atlas (single self-contained HTML page)
   mekiki diff  BASE HEAD        report what two lint snapshots added and resolved
@@ -216,8 +218,14 @@ func cmdLint(argv []string) int {
 	update := fs.bool("update-baseline", "freeze the current skills as pre-existing and exit")
 	changed := fs.bool("changed", "report only the skills this change touched (see --base)")
 	base := fs.str("base", lint.DefaultBase, "revision --changed measures the change against")
+	useJev := fs.bool("jev", "also ask Jev the judged rules J1-J5 (opt-in; needs TYPESAFE_API_KEY)")
+	dryRun := fs.bool("dry-run", "with --jev: print what would be sent and its price, send nothing")
 	if err := fs.parse(argv); err != nil {
 		fmt.Fprintln(os.Stderr, err)
+		return 2
+	}
+	if *dryRun && !*useJev {
+		fmt.Fprintln(os.Stderr, "--dry-run prices a --jev run; there is nothing to price without --jev")
 		return 2
 	}
 	paths, err := resolvePaths(fs.args)
@@ -243,6 +251,7 @@ func cmdLint(argv []string) int {
 	}
 	sum := res.Summary()
 	found := res.Findings
+	inScope := res.Parsed
 	if *changed {
 		// The repository is located from the first inspected path, so the corpus may sit in a
 		// checkout that is not the working directory.
@@ -255,6 +264,37 @@ func cmdLint(argv []string) int {
 		found, sum = scoped.Findings, scoped.Summary()
 		res.SkillKeys = scoped.Keys // a snapshot must list only the skills its findings cover
 		res.Notes = append(res.Notes, scoped.Notes...)
+		inScope = nil
+		for _, s := range res.Parsed {
+			if scoped.Touched[s.Key()] {
+				inScope = append(inScope, s)
+			}
+		}
+	}
+	if *useJev {
+		// Only the skills in scope are sent, so `--changed --jev` sends what the change touched.
+		plan := jev.Plan(inScope, found, res.Config)
+		if *dryRun {
+			fmt.Println(jev.Estimate(plan))
+			return 0
+		}
+		client, err := jev.NewClientFromEnv()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return 2
+		}
+		judged, err := jev.Judge(client, plan)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return 2
+		}
+		found = append([]lint.Finding(nil), found...)
+		for i, note := range judged.Annotations {
+			found[i].Message += note
+		}
+		found = append(found, judged.Findings...)
+		sum.Warnings += len(judged.Findings) // warnings only: a judged rule never moves the exit code
+		res.Notes = append(res.Notes, judged.Notes...)
 	}
 	shown := found
 	if *severity == "error" {

@@ -284,6 +284,7 @@ mekiki/
     ├── skill/                   # 探索・frontmatter 解釈・Contract・トークン推定
     ├── config/                  # ガード名と検出語
     ├── lint/                    # 規則 L1〜L25・統括・baseline・スナップショット・diff・SARIF
+    ├── jev/                     # opt-in の判定規則 J1〜J5 と唯一のネットワーククライアント
     ├── scaffold/                # 雛形生成
     └── atlas/                   # ページモデルと埋め込みテンプレート
 ```
@@ -297,7 +298,7 @@ mekiki/
 ```
 mekiki lint  [PATH...] [--format text|json|sarif] [--severity error|warn]
                        [--baseline baseline.json] [--config config.json] [--update-baseline]
-                       [--changed [--base REV]]
+                       [--changed [--base REV]] [--jev [--dry-run]]
 mekiki new   NAME      [--out DIR] [--type action|knowledge|util]
                        [--risk billing|write|browser|publish] [--config config.json]
 mekiki atlas [PATH...] [--out skill-atlas.html] [--config …] [--baseline …]
@@ -308,6 +309,13 @@ mekiki diff  BASE.json HEAD.json [--format text|json|sarif]
 - PATH 省略時は環境変数 `MEKIKI_TARGET` を見る（未設定はエラー）。PATH はプラグイン群でも
   個別スキルのディレクトリでもよい
 - `--severity` は**表示のフィルタのみ**で exit code には影響しない
+- `--jev` は較正済み分類器 Jev に、スコープ内のスキルについて判定規則 J1〜J5 を追加で問う。
+  L6 が拾った文が計算か判断か、Trigger が description と矛盾しないか、description が「いつ
+  使わないか」を述べているか、公開・破壊的書き込みの語彙が言及ではなく実行か、Non-goals が
+  持ち主を名指ししているか。opt-in で `TYPESAFE_API_KEY` が必要、送るのはスコープ内のスキル
+  のみ、報告は warn のみ、exit code を動かさず、`diff` は無視する。`--dry-run` は鍵も
+  ソケットもなしで価格を出す。しきい値は `internal/jev/testdata/` のラベル付き fixtures で
+  fit し、CI では鍵なしで replay する（USAGE.ja.md「Jev で判定する」）。
 - `--changed` は変更が触ったスキルに報告を絞り、exit code も一緒に絞る。`--severity` との
   非対称は意図的で、severity での絞り込みが赤いビルドを緑にしてはならないのに対し、持ち込んで
   も触ってもいない error で PR が落ちることこそ、この絞り込みが取り除く対象だから。資産の
@@ -478,7 +486,7 @@ t_wada 流 TDD で実装する。§9.1 の表がそのまま初期テストリ�
 ## 11. 非機能要件
 
 - 性能: 約200スキル・references 数千ファイルの全量スキャンで 60 秒以内（md5 計算は 8KB 未満のファイルを除外して抑える）
-- 依存: Go 標準ライブラリのみ。ネットワークアクセスなし。read-only（`--update-baseline` 時の baseline.json 書き込みのみ例外）
+- 依存: Go 標準ライブラリのみ。`--jev` 指定時に Jev エンドポイントへスコープ内スキルを送る以外、ネットワークアクセスなし。read-only（`--update-baseline` 時の baseline.json 書き込みのみ例外）
 - 出力の安定性: findings の順序は決定的（severity → skill → rule → line）。CI での diff 比較を可能にする
 
 ## 12. 同梱スキル

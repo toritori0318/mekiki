@@ -48,6 +48,32 @@ present」と報告されたスキルは、この変更が削除したもので�
 答えが出ます。remote がないリポジトリには `origin/HEAD` がないので、推測せず `--base` を
 案内して止まります。
 
+## Jev で判定する
+
+`--jev` は較正済み分類器 [Jev](https://typesafe.ai) に、正規表現では決められない 5 つの
+問いを投げます。L6 が拾った文が計算か判断か（J1）、Contract の Trigger が description と
+矛盾していないか（J2）、description が「いつ使わないか」を述べているか（J3）、公開や破壊的
+書き込みの語彙が言及ではなく実行か（J4）、Non-goals が除外した仕事の持ち主を名指ししているか
+（J5）。
+
+```bash
+export TYPESAFE_API_KEY=...                       # 環境変数からのみ。ファイルには書かない
+mekiki lint path/to/skills --jev --dry-run        # 送る内容と価格を出して、送らない
+mekiki lint path/to/skills --changed --jev        # この変更が触ったスキルだけ判定する
+```
+
+指摘は判決ではなく人が見る候補として読んでください。すべて warn で、ビルドを落とさず、
+`mekiki diff` は無視します。各指摘は確率を伴います。J1 は指摘を増やさず、判定した L6 の
+指摘に `[jev J1: reads as computation 0.12]` を添えるので、低い数字が誤検知の目印になります。
+`--jev` なしではここの処理は一切動かず、ソケットも開きません。鍵がなければ変数名を挙げて
+止まり、`--dry-run` に鍵は要りません。数百スキルの全件でも数セント以下、`--changed` 付きの
+PR ならその何分の一かです。
+
+しきい値は fit が済むまで暫定の 0.5 です。各規則は `internal/jev/testdata/` にラベル付き
+fixtures を持ち、`MEKIKI_JEV_LIVE=1 go test ./internal/jev -run Live` がその回答を baseline
+として記録し、通常のテストは鍵なしで replay します。しきい値を動かすのは、最も高い clean と
+最も低い bad の回答の隙間の中だけにしてください。
+
 ## CI で変更をゲートする
 
 答える問いが違う2つのゲートがあります。

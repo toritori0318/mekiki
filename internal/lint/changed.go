@@ -15,8 +15,9 @@ import (
 type ScopeResult struct {
 	Findings []Finding
 	Notes    []string
-	Keys     []string // the touched skills, sorted, deleted ones included
-	Skills   int      // len(Keys)
+	Keys     []string        // the touched skills, sorted, deleted ones included
+	Touched  map[string]bool // the same set, for membership
+	Skills   int             // len(Keys)
 }
 
 // Scope narrows findings to the skills a change touched.
@@ -97,7 +98,7 @@ func Scope(findings []Finding, dirs map[string]string, changed []string) ScopeRe
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
-	return ScopeResult{Findings: out, Notes: notes, Keys: keys, Skills: len(keys)}
+	return ScopeResult{Findings: out, Notes: notes, Keys: keys, Touched: touched, Skills: len(keys)}
 }
 
 // abs normalises a path for comparison. Two differences have to be absorbed before a changed

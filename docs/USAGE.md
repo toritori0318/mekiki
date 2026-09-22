@@ -51,6 +51,33 @@ Uncommitted and untracked work counts as part of the change, so the same command
 a branch you have not pushed. A repository with no remote has no `origin/HEAD`, and the run
 stops with a message naming `--base` rather than guessing.
 
+## Judging with Jev
+
+`--jev` asks [Jev](https://typesafe.ai), a calibrated classifier, five questions a regular
+expression cannot decide: whether a sentence L6 matched is computation or judgement (J1),
+whether the Contract's Trigger contradicts the description (J2), whether the description says
+when *not* to activate (J3), whether publication or destructive-write wording is performed
+rather than mentioned (J4), and whether Non-goals name who owns the excluded work (J5).
+
+```bash
+export TYPESAFE_API_KEY=...                       # from the environment only, never a file
+mekiki lint path/to/skills --jev --dry-run        # what would be sent and its price; sends nothing
+mekiki lint path/to/skills --changed --jev        # judge only the skills this change touched
+```
+
+Read the findings as candidates for a person, not verdicts: they are warnings, they never
+fail the build, and `mekiki diff` ignores them. Each carries its probability. J1 does not
+add a finding; it appends `[jev J1: reads as computation 0.12]` to the L6 finding it judged,
+so a low number marks the likely false positive. Without `--jev` nothing here runs and no
+socket is opened. A missing key stops the run and names the variable; `--dry-run` needs no
+key. A full run over a corpus of a few hundred skills costs a few cents at most; a pull request
+with `--changed`, a fraction of one.
+
+The cutoffs ship provisional at 0.5 until fitted. Each rule carries labelled fixtures under
+`internal/jev/testdata/`; `MEKIKI_JEV_LIVE=1 go test ./internal/jev -run Live` records their
+answers as a baseline, and the ordinary test replays it without a key. Move a cutoff only
+into the gap between the highest clean and the lowest bad answer.
+
 ## Gating a change in CI
 
 Two gates that answer different questions.

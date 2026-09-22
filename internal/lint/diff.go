@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 )
 
 // Snapshot is the JSON shape written by `mekiki lint --format json`.
@@ -58,6 +59,9 @@ func Compare(base, head *Snapshot) Delta {
 	group := func(fs []Finding) map[key][]Finding {
 		m := map[key][]Finding{}
 		for _, f := range fs {
+			if strings.HasPrefix(f.Rule, "J") {
+				continue // a judged verdict can move between runs; the diff is for the mechanical rules
+			}
 			k := key{f.Rule, f.Skill}
 			m[k] = append(m[k], f)
 		}

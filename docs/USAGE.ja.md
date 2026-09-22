@@ -69,10 +69,10 @@ mekiki lint path/to/skills --changed --jev        # この変更が触ったス�
 止まり、`--dry-run` に鍵は要りません。数百スキルの全件でも数セント以下、`--changed` 付きの
 PR ならその何分の一かです。
 
-しきい値は fit が済むまで暫定の 0.5 です。各規則は `internal/jev/testdata/` にラベル付き
-fixtures を持ち、`MEKIKI_JEV_LIVE=1 go test ./internal/jev -run Live` がその回答を baseline
-として記録し、通常のテストは鍵なしで replay します。しきい値を動かすのは、最も高い clean と
-最も低い bad の回答の隙間の中だけにしてください。
+しきい値は `internal/jev/testdata/` のラベル付き fixtures で fit 済みで、記録した回答を
+通常のテストが鍵なしで replay します。質問文を変えたときは
+`MEKIKI_JEV_LIVE=1 go test ./internal/jev -run Live` で再記録します。しきい値を動かすのは、
+最も高い clean と最も低い bad の回答の隙間の中だけにしてください。
 
 ## CI で変更をゲートする
 

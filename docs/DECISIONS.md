@@ -250,9 +250,10 @@ corpus size at the time that decision was made.
     finding it judged instead of hiding it, J4 opens the L20 tiers the wording made
     unactionable as warnings, and no rule consults L8. Safety rules favour recall (decision
     12), and a model does not treat adversarial text in its state as adversarial while a
-    regular expression cannot be talked out of a match. Cutoffs ship at a provisional 0.5:
-    they are fitted on the fixtures under `internal/jev/testdata/` by a live run someone with
-    a key records, and replayed in CI without one. Fixtures are synthetic, so nothing from a
+    regular expression cannot be talked out of a match. Cutoffs are fitted on the fixtures
+    under `internal/jev/testdata/` by a live run and replayed in CI without a key; the first
+    fit put every bad case at 0.87 or above and every clean case at 0.15 or below, so 0.5
+    holds for all five. Fixtures are synthetic, so nothing from a
     real corpus enters the repository.
 
 ## Rejected

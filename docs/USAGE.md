@@ -73,10 +73,10 @@ socket is opened. A missing key stops the run and names the variable; `--dry-run
 key. A full run over a corpus of a few hundred skills costs a few cents at most; a pull request
 with `--changed`, a fraction of one.
 
-The cutoffs ship provisional at 0.5 until fitted. Each rule carries labelled fixtures under
-`internal/jev/testdata/`; `MEKIKI_JEV_LIVE=1 go test ./internal/jev -run Live` records their
-answers as a baseline, and the ordinary test replays it without a key. Move a cutoff only
-into the gap between the highest clean and the lowest bad answer.
+The cutoffs are fitted on labelled fixtures under `internal/jev/testdata/`, whose recorded
+answers the ordinary test replays without a key. `MEKIKI_JEV_LIVE=1 go test ./internal/jev
+-run Live` re-records them when a question changes. Move a cutoff only into the gap between
+the highest clean and the lowest bad answer.
 
 ## Gating a change in CI
 

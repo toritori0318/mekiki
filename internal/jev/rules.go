@@ -3,9 +3,10 @@ package jev
 // A rule is one statement put to the model about one subject. Every statement is phrased so
 // that the defect reads high: a large probability means the same thing under every rule.
 //
-// ponytail: every cutoff is the provisional 0.5 until `MEKIKI_JEV_LIVE=1 go test -run Live`
-// has recorded a baseline on the fixtures under testdata/. Move one only into the gap
-// between the highest clean and the lowest bad answer.
+// Every cutoff is 0.5, and the baselines under testdata/ show why that holds: on the first
+// fit every bad case answered 0.87 or higher and every clean case 0.15 or lower. Move one
+// only into the gap between the highest clean and the lowest bad answer, and re-record with
+// `MEKIKI_JEV_LIVE=1 go test -run Live` whenever a question changes.
 type rule struct {
 	ID        string
 	Statement string

@@ -159,3 +159,17 @@ func TestPlanGivesJ4EveryMatchingLineNotJustTheFirst(t *testing.T) {
 		}
 	}
 }
+
+func TestPlanQuotesTheNonGoalsInsideTheJ5Question(t *testing.T) {
+	// The first fit did not separate J5 (bad 0.61, clean 0.55): asked about the state as a
+	// whole, the model did not read a bare skill name in parentheses as naming an owner. The
+	// entry now travels inside the question, where the criteria can say what counts.
+	s := sk("drafting-weekly-plan", "Drafts the weekly plan.", contract, nil)
+
+	plan := Plan([]*skill.Skill{s}, nil, defaults())
+
+	q := plan[0].Questions["J5"].Instructions
+	if !strings.Contains(q, "does not inspect schedule deltas (reviewing-schedule-delta owns that)") {
+		t.Errorf("J5 question = %q, want the Non-goals entry quoted inside it", q)
+	}
+}

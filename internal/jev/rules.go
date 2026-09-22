@@ -59,12 +59,14 @@ var rules = map[string]rule{
 		Cutoff: 0.5,
 	},
 	"J5": {
-		ID:        "J5",
-		Statement: "The Non-goals entry excludes work without saying which skill or stage owns it.",
-		WhenTrue: "At least one excluded piece of work has no owner named: no skill, no stage, no " +
-			"person or tool that does it instead.",
-		WhenFalse: "Every excluded piece of work names where it belongs, or the entry says the work " +
-			"is out of scope for everyone.",
+		ID: "J5",
+		Statement: "In the entry under `non_goals`, at least one excluded piece of work is not followed " +
+			"by the name of the skill, stage, person or tool that handles it instead.",
+		WhenTrue: "Some excluded item stands alone: nothing after it says who or what does that work. " +
+			"A bare \"does not X; does not Y\" with no names is the typical case.",
+		WhenFalse: "Every excluded item is paired with a handler: a skill name (hyphenated, like " +
+			"reviewing-schedule-delta, in parentheses or in prose), a stage, a person or a tool; or the " +
+			"entry states that nobody does that work at all.",
 		Cutoff: 0.5,
 	},
 }

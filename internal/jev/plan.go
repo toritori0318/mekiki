@@ -102,8 +102,12 @@ func Plan(skills []*skill.Skill, findings []lint.Finding, cfg *config.Config) []
 				ask("J4:"+tier.key, q, Subject{Rule: "J4", Line: s.BodyLine(first), Annotates: -1, Detail: tier.name})
 			}
 		}
-		if contract.Items["Non-goals"] != "" {
-			ask("J5", plain(rules["J5"]), Subject{Rule: "J5", Line: contractLine, Annotates: -1})
+		if ng := contract.Items["Non-goals"]; ng != "" {
+			// Quoted inside the question, not left to the state: the first fit did not separate
+			// when the model had to find the entry itself (bad 0.61, clean 0.55).
+			rl := rules["J5"]
+			q := Noul(rl.Statement+"\n\nnon_goals: "+strings.TrimSpace(ng), rl.WhenTrue, rl.WhenFalse)
+			ask("J5", q, Subject{Rule: "J5", Line: contractLine, Annotates: -1})
 		}
 		out = append(out, r)
 	}

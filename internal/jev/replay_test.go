@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/toritori0318/mekiki/internal/lint"
@@ -143,7 +144,8 @@ func TestReplayBaselinesAgainstTheShippedCutoffs(t *testing.T) {
 }
 
 // TestLiveRecordBaselines is the fit. It runs only when asked, needs a key, and rewrites
-// every baseline.json from the fixtures; commit the result.
+// every baseline.json from the fixtures; commit the result. MEKIKI_JEV_RULES=J5,J2 limits
+// it to the rules named, so rewriting one question does not re-record the others.
 func TestLiveRecordBaselines(t *testing.T) {
 	if os.Getenv("MEKIKI_JEV_LIVE") == "" {
 		t.Skip("set MEKIKI_JEV_LIVE=1 (and TYPESAFE_API_KEY) to record baselines")
@@ -152,7 +154,16 @@ func TestLiveRecordBaselines(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	only := map[string]bool{}
+	for _, r := range strings.Split(os.Getenv("MEKIKI_JEV_RULES"), ",") {
+		if r = strings.TrimSpace(r); r != "" {
+			only[r] = true
+		}
+	}
 	for _, rule := range ruleDirs(t) {
+		if len(only) > 0 && !only[rule] {
+			continue
+		}
 		answers := fixtureAnswers(t, c, rule)
 		raw, _ := json.MarshalIndent(baseline{Model: c.Model, Answers: answers}, "", "  ")
 		if err := os.WriteFile(filepath.Join("testdata", rule, "baseline.json"), append(raw, '\n'), 0o644); err != nil {

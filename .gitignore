@@ -1,6 +1,6 @@
 # Baseline: generated per environment via `mekiki lint --update-baseline`.
 # It lists the skill inventory of whatever corpus you point at, so it is not shared.
-baseline.json
+/baseline.json
 
 # Org-specific settings (guard skill names, detection patterns).
 # Copy config.example.json to config.json and edit.

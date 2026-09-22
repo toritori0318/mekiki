@@ -253,6 +253,7 @@ func cmdLint(argv []string) int {
 		}
 		scoped := lint.Scope(found, res.SkillDirs, files)
 		found, sum = scoped.Findings, scoped.Summary()
+		res.SkillKeys = scoped.Keys // a snapshot must list only the skills its findings cover
 		res.Notes = append(res.Notes, scoped.Notes...)
 	}
 	shown := found

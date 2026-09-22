@@ -307,3 +307,41 @@ func TestScopeDoesNotCallAnUnlintedSkillDeleted(t *testing.T) {
 		t.Errorf("notes = %q, want the unlinted skill counted as unexamined", r.Notes)
 	}
 }
+
+func TestScopeIgnoresATouchedNameQuotedAsSomethingElse(t *testing.T) {
+	// The bare-name form exists for rules that name a skill by name alone (a flow target, a
+	// declared dependency). A trigger phrase that happens to equal a touched skill's name is
+	// a collision between two other skills and has nothing to do with this change.
+	root := "/repo"
+	skills := dirs(root, "acme:alpha", "acme:beta", "acme:gamma")
+	findings := []Finding{
+		f("L23", "acme:beta", Warn, `trigger phrase "alpha" is also claimed by acme:gamma`, 2),
+		f("L16", "acme:beta", Error, `flow references skill "alpha", which does not exist`, 1),
+		f("L21", "acme:beta", Warn, `depends_on: declares "alpha" but no skill of that name exists`, 2),
+	}
+	changed := []string{filepath.Join(root, "plugins/acme/skills/alpha/SKILL.md")}
+
+	got := Scope(findings, skills, changed).Findings
+
+	if len(got) != 2 || got[0].Rule != "L16" || got[1].Rule != "L21" {
+		t.Errorf("Scope kept %+v, want only the findings naming alpha as a skill", got)
+	}
+}
+
+func TestScopeListsTheTouchedKeysForTheSnapshot(t *testing.T) {
+	// A `--format json` snapshot taken under `--changed` must list only the skills its
+	// findings cover. Listing the whole corpus next to a narrowed report makes `diff` read
+	// every finding the narrowing dropped as resolved.
+	root := "/repo"
+	skills := dirs(root, "acme:beta", "acme:gamma")
+	changed := []string{
+		filepath.Join(root, "plugins/acme/skills/gamma/SKILL.md"),
+		filepath.Join(root, "plugins/acme/skills/alpha/SKILL.md"), // deleted
+	}
+
+	got := Scope(nil, skills, changed).Keys
+
+	if strings.Join(got, ",") != "acme:alpha,acme:gamma" {
+		t.Errorf("Keys = %v, want the touched skills sorted, deleted ones included", got)
+	}
+}

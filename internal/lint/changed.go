@@ -15,7 +15,8 @@ import (
 type ScopeResult struct {
 	Findings []Finding
 	Notes    []string
-	Skills   int // how many skills the change touched, deleted ones included
+	Keys     []string // the touched skills, sorted, deleted ones included
+	Skills   int      // len(Keys)
 }
 
 // Scope narrows findings to the skills a change touched.
@@ -91,11 +92,14 @@ func Scope(findings []Finding, dirs map[string]string, changed []string) ScopeRe
 		notes = append(notes, fmt.Sprintf(
 			"%d changed file(s) belong to no skill and were not examined", n))
 	}
-	return ScopeResult{Findings: out, Notes: notes, Skills: len(touched)}
+	keys := make([]string, 0, len(touched))
+	for k := range touched {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return ScopeResult{Findings: out, Notes: notes, Keys: keys, Skills: len(keys)}
 }
 
-// mentionsAny reports whether a finding's message names one of the touched skills, either by
-// its `plugin:name` key or as a quoted bare name — the two forms the cross-cutting rules use.
 // abs normalises a path for comparison. Two differences have to be absorbed before a changed
 // file can be matched against a skill directory: a corpus given as `skills/` is discovered
 // relative to the working directory while git reports absolute paths, and git resolves every
@@ -123,6 +127,11 @@ func abs(p string) string {
 	}
 }
 
+// mentionsAny reports whether a finding's message names one of the touched skills, either by
+// its `plugin:name` key or by bare name in the two forms a rule uses to point at another skill:
+// a flow target (`skill "name"`) or a declared dependency (`declares "name"`). A bare quoted
+// name on its own is not enough — a trigger phrase equal to a skill's name is a collision
+// between two other skills, not this change's doing.
 func mentionsAny(msg string, keys, names map[string]bool) bool {
 	for k := range keys {
 		if strings.Contains(msg, k) {
@@ -130,7 +139,8 @@ func mentionsAny(msg string, keys, names map[string]bool) bool {
 		}
 	}
 	for n := range names {
-		if strings.Contains(msg, `"`+n+`"`) {
+		q := `"` + n + `"`
+		if strings.Contains(msg, "skill "+q) || strings.Contains(msg, "declares "+q) {
 			return true
 		}
 	}

@@ -41,6 +41,9 @@ type Result struct {
 	// SkillKeys is every discovered `plugin:name`, sorted. It goes into the JSON snapshot so
 	// that a later `atlas --base` can distinguish a new skill from one that had no findings.
 	SkillKeys []string `json:"-"`
+	// SkillDirs maps each key to the directory it was discovered in, which is how `--changed`
+	// decides whether a changed file belongs to a skill.
+	SkillDirs map[string]string `json:"-"`
 }
 
 // Summary counts findings by severity.
@@ -108,11 +111,14 @@ func Run(opts Options) (*Result, error) {
 	sortFindings(findings)
 
 	keys := make([]string, 0, len(skills))
+	dirs := make(map[string]string, len(skills))
 	for _, s := range skills {
 		keys = append(keys, s.Key())
+		dirs[s.Key()] = s.Dir
 	}
 	sort.Strings(keys)
-	return &Result{Findings: findings, Notes: notes, Skills: len(skills), SkillKeys: keys}, nil
+	return &Result{Findings: findings, Notes: notes, Skills: len(skills),
+		SkillKeys: keys, SkillDirs: dirs}, nil
 }
 
 func joinProblems(ps []string) string {

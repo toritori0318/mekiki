@@ -35,14 +35,31 @@ generated where it is used rather than carried between machines.
 
 | The question | The command |
 |---|---|
-| Does this tree have errors right now? | `mekiki lint PATH --severity error` |
-| Did **this change** make it worse? | two `--format json` snapshots, then `mekiki diff base.json head.json` |
+| **Lint this pull request / this diff.** What shape are the skills it touched in? | `mekiki lint PATH --changed` |
+| Does this whole tree have errors right now? | `mekiki lint PATH --severity error` |
+| Did this change make the corpus worse than it was? | two `--format json` snapshots, then `mekiki diff base.json head.json` |
 | What does the whole estate look like? | `mekiki atlas PATH --out skill-atlas.html` |
 | What did this change do to the estate? | `mekiki atlas PATH --base base.json` |
 
-On an inherited tree the second question is the only fair one. A plain gate fails every
-change until the entire backlog is cleared, which teaches everyone to ignore it. `diff` exits
-non-zero **only when the change added an error**:
+**"lint this PR", "check this diff", "スキルの差分を見て" is the first row, not the third.**
+The first row answers *what state the touched skills are in*; the third answers *whether the
+corpus regressed*. Asking `diff` the first question is how a review ends up with "no change"
+while the skills the change edited are full of errors — `diff` compares two sets of findings,
+so a pull request that edits a skill without altering which rules fire is silent by design.
+
+```bash
+mekiki lint path/to/skills --changed                    # against origin/HEAD
+mekiki lint path/to/skills --changed --base release-1   # against anything else
+```
+
+`--changed` still evaluates the whole corpus — the cross-cutting rules cannot see a
+duplicated reference or a broken delegation otherwise — and narrows only the report, to the
+skills the change touched plus any skill those touched skills broke. The exit code follows
+the narrowed report, so an inherited backlog never fails the review.
+
+Reach for `diff` when the question really is about regression, which on an inherited tree is
+the only fair gate: a plain lint fails every change until the whole backlog is cleared. It
+exits non-zero **only when the change added an error**:
 
 ```bash
 git worktree add ../base <base-revision>
@@ -51,8 +68,8 @@ mekiki lint path/to/skills --format json > head.json
 mekiki diff base.json head.json
 ```
 
-For a review a person will read, add `--format sarif` to `diff` and the findings land on the
-lines they refer to rather than in a job log.
+For a review a person will read, add `--format sarif` to either command and the findings land
+on the lines they refer to rather than in a job log.
 
 ### 3. Sort the output before touching anything
 
@@ -91,8 +108,17 @@ re-checked.
   so `<!-- mekiki: disable L6 -->` is inert while
   `<!-- mekiki: disable L6 -- the arithmetic lives in scripts/calc.py -->` works. This is by
   design: the reason is what makes the exception reviewable.
-- **`--severity error` filters the display, not the exit code.** A filtered run cannot turn a
-  red build green, and reading it as "there are no warnings" is wrong.
+- **`--severity error` filters the display, not the exit code. `--changed` narrows both.**
+  The asymmetry is deliberate: a severity filter must never turn a red build green, whereas
+  narrowing to the change is the whole point of narrowing — a pull request should not fail on
+  an error it neither introduced nor touched.
+- **`--changed` reads git, so it needs a revision that exists.** The default base is
+  `origin/HEAD`; a repository with no remote has none, and the run stops with a message
+  naming `--base` rather than guessing. Uncommitted work counts as part of the change.
+- **Read the notes `--changed` prints before reading the findings.** "no skill was touched"
+  means the change never reached a skill, not that the corpus is clean; a skill reported as
+  no longer present was deleted by this change, which is the most consequential thing a
+  skills pull request can do.
 - **Both snapshots in a `diff` must come from the same mekiki version and the same
   `config.json`.** A different rule set on either side makes the delta meaningless.
 - **The delta is keyed by rule and skill, not by file and line.** So fixing one finding and

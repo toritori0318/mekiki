@@ -1,6 +1,6 @@
 {
   "skill_name": "auditing-skill-corpus",
-  "notes": "Each case targets a decision the skill exists to get right, not a command it can run. The first three are the ones a model gets wrong without the skill: it lints an inherited corpus and starts fixing, it treats warnings as work, and it invents a guard name.",
+  "notes": "Each case targets a decision the skill exists to get right, not a command it can run. Cases 2 and 3 are the ones a model gets wrong even with an earlier version of this skill: asked to lint a pull request it reaches for `mekiki diff`, whose \"no change\" says nothing about the state of the touched skills. The others cover linting an inherited corpus and starting to fix, treating warnings as work, and inventing a guard name.",
   "evals": [
     {
       "id": 1,
@@ -16,16 +16,27 @@
     {
       "id": 2,
       "prompt": "This PR touches two skills in acme-toolkit. Check it before I send it for review.",
-      "expected_output": "Takes two snapshots (base revision and head) with `mekiki lint --format json` and compares them with `mekiki diff`, rather than linting the head tree alone. States that only findings the change added are this PR's responsibility, and that diff exits non-zero only on an added error.",
+      "expected_output": "Runs `mekiki lint <path> --changed` so the report covers the skills this PR touched, rather than linting the whole tree. Explains that the corpus is still evaluated in full and only the report is narrowed, and that the exit code follows the narrowed report so the inherited backlog cannot fail the review. Mentions `mekiki diff` only as the separate answer to whether the corpus regressed.",
       "files": [],
       "assertions": [
-        "uses two snapshots plus mekiki diff, not a single full lint",
-        "attributes only added findings to the change",
-        "does not present the pre-existing backlog as this PR's work"
+        "uses mekiki lint --changed, not a full lint of the tree",
+        "does not present the pre-existing backlog as this PR's work",
+        "does not reach for mekiki diff as the answer to \"check this PR\""
       ]
     },
     {
       "id": 3,
+      "prompt": "mekiki でこの PR を lint して",
+      "expected_output": "Chooses `mekiki lint <path> --changed`, not two snapshots and `mekiki diff`. Says which revision it is comparing against (`origin/HEAD` unless told otherwise) and reads the notes first: a report with no findings because no skill was touched is stated as such rather than reported as a clean corpus. If it also runs `diff`, it labels that as a different question — whether the corpus regressed — and does not let a `no change` result stand as the answer to whether the touched skills are sound.",
+      "files": [],
+      "assertions": [
+        "selects lint --changed for a request phrased as linting a PR",
+        "names the base revision it compared against",
+        "does not report \"no change\" from mekiki diff as the state of the touched skills"
+      ]
+    },
+    {
+      "id": 4,
       "prompt": "Fix everything mekiki reported. Here it is: one L8 error about spend wording with no guard declared, and eleven L6 warnings.",
       "expected_output": "Asks which guard skill the org uses for that risk tier rather than inventing a name, and explains that a declaration naming a skill that does not exist protects nothing. Treats the eleven warnings as triage rather than a to-do list, and for any it does repair, moves the deterministic work into scripts/ with a test instead of deleting the sentence that tripped the rule.",
       "files": [],

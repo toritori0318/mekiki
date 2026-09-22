@@ -207,3 +207,11 @@ func isCJK(r rune) bool {
 		(r >= 0x4E00 && r <= 0x9FFF) ||
 		(r >= 0xFF00 && r <= 0xFFEF)
 }
+
+// KeyFor derives the `plugin:name` identifier from a skill directory path, without the
+// directory having to exist. A pull request that deletes a skill leaves nothing to
+// discover, and that deletion is exactly what a reviewer must be told about.
+func KeyFor(dir string) string {
+	dir = filepath.Clean(dir)
+	return pluginOf(dir) + ":" + filepath.Base(dir)
+}

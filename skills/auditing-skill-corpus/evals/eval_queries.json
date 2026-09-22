@@ -40,6 +40,18 @@
     "should_trigger": true
   },
   {
+    "query": "mekiki でこの PR を lint して",
+    "should_trigger": true
+  },
+  {
+    "query": "Lint this PR's skills",
+    "should_trigger": true
+  },
+  {
+    "query": "この差分で触ったスキルだけチェックして",
+    "should_trigger": true
+  },
+  {
     "query": "Review the wording of this SKILL.md — will an agent misread step 3?",
     "should_trigger": false
   },

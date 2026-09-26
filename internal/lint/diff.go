@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"sort"
-	"strings"
 )
 
 // Snapshot is the JSON shape written by `mekiki lint --format json`.
@@ -48,6 +47,16 @@ func LoadSnapshot(path string) (*Snapshot, error) {
 	return &s, nil
 }
 
+// IsJudged reports whether a rule is one of the model-judged rules (J1, J2, ...) that
+// `lint --jev` adds. lint never imports the package that asks them, so this naming
+// convention is the whole contract between the two, and it lives here in one place.
+//
+// Compare skips them: a judged verdict near its cutoff can land on either side between
+// runs, and keyed into the diff it would read as one added plus one resolved finding.
+func IsJudged(rule string) bool {
+	return len(rule) > 1 && rule[0] == 'J' && rule[1] >= '0' && rule[1] <= '9'
+}
+
 // Compare reports what a change added and resolved.
 //
 // The diff key is the (rule, skill) multiset, deliberately excluding line and message:
@@ -59,8 +68,8 @@ func Compare(base, head *Snapshot) Delta {
 	group := func(fs []Finding) map[key][]Finding {
 		m := map[key][]Finding{}
 		for _, f := range fs {
-			if strings.HasPrefix(f.Rule, "J") {
-				continue // a judged verdict can move between runs; the diff is for the mechanical rules
+			if IsJudged(f.Rule) {
+				continue
 			}
 			k := key{f.Rule, f.Skill}
 			m[k] = append(m[k], f)

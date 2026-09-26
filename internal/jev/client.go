@@ -9,7 +9,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -87,9 +89,30 @@ func NewClientFromEnv() (*Client, error) {
 		return nil, ErrNoKey
 	}
 	if u := strings.TrimSpace(os.Getenv("TYPESAFE_BASE_URL")); u != "" {
+		if err := checkBaseURL(u); err != nil {
+			return nil, err
+		}
 		c.BaseURL = u
 	}
 	return c, nil
+}
+
+// checkBaseURL refuses anything but https, except on loopback. The key travels in the
+// Authorization header, so plain http off the machine would send it in the clear.
+func checkBaseURL(raw string) error {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return fmt.Errorf("TYPESAFE_BASE_URL is not a URL: %w", err)
+	}
+	if u.Scheme == "https" {
+		return nil
+	}
+	if u.Scheme == "http" {
+		if ip := net.ParseIP(u.Hostname()); u.Hostname() == "localhost" || (ip != nil && ip.IsLoopback()) {
+			return nil
+		}
+	}
+	return fmt.Errorf("TYPESAFE_BASE_URL must use https (plain http is allowed only for localhost): %s", raw)
 }
 
 // AuthError is a 401, 402 or 403: the account has to fix something, and retrying or moving
@@ -143,7 +166,8 @@ func (c *Client) Ask(state any, questions map[string]Question) (Answers, error) 
 			case res.StatusCode == 429 || res.StatusCode >= 500:
 				last = fmt.Errorf("jev: HTTP %d", res.StatusCode)
 			default:
-				return Answers{}, fmt.Errorf("jev: HTTP %d: %s", res.StatusCode, trim(raw))
+				// Status only: a server that echoes the request would put skill text in a CI log.
+				return Answers{}, fmt.Errorf("jev: HTTP %d", res.StatusCode)
 			}
 		}
 		if attempt == retries {
@@ -172,12 +196,4 @@ func parse(raw []byte) (Answers, error) {
 		return Answers{}, fmt.Errorf("jev: unreadable response: %w", err)
 	}
 	return Answers{Model: res.Model, InputTokens: res.Usage.InputTokens, raw: res.Answers}, nil
-}
-
-func trim(b []byte) string {
-	s := strings.TrimSpace(string(b))
-	if len(s) > 200 {
-		s = s[:200] + "…"
-	}
-	return s
 }

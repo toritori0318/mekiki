@@ -126,3 +126,46 @@ func TestNoulIsAbsentNotFalseWhenTheServerLeftItOut(t *testing.T) {
 		t.Error("Noul reported an answer the server never gave")
 	}
 }
+
+func TestNewClientFromEnvRefusesPlainHTTPOffLocalhost(t *testing.T) {
+	// The key travels in the Authorization header, so a base URL an environment set to
+	// plain http would send it in the clear. Loopback stays allowed: tests run a local server.
+	t.Setenv("TYPESAFE_API_KEY", "k")
+	for url, ok := range map[string]bool{
+		"https://api.typesafe.ai": true,
+		"http://127.0.0.1:8080":   true,
+		"http://localhost:9000":   true,
+		"http://[::1]:9000":       true,
+		"http://api.typesafe.ai":  false,
+		"http://10.0.0.5":         false,
+		"ftp://api.typesafe.ai":   false,
+	} {
+		t.Setenv("TYPESAFE_BASE_URL", url)
+		_, err := NewClientFromEnv()
+		if ok && err != nil {
+			t.Errorf("%s refused: %v", url, err)
+		}
+		if !ok && (err == nil || !strings.Contains(err.Error(), "https")) {
+			t.Errorf("%s accepted (err=%v), want a refusal naming https", url, err)
+		}
+	}
+}
+
+func TestAskErrorCarriesTheStatusButNotTheResponseBody(t *testing.T) {
+	// A server that echoes the request would otherwise put skill text into a CI log.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(422)
+		w.Write([]byte(`{"error":"bad","echo":"CONFIDENTIAL-SKILL-TEXT"}`))
+	}))
+	defer srv.Close()
+
+	c := &Client{BaseURL: srv.URL, APIKey: "k", Sleep: func(time.Duration) {}}
+	_, err := c.Ask("s", map[string]Question{"q": Noul("x", "y", "n")})
+
+	if err == nil || !strings.Contains(err.Error(), "422") {
+		t.Fatalf("err = %v, want the status", err)
+	}
+	if strings.Contains(err.Error(), "CONFIDENTIAL") {
+		t.Errorf("err = %q leaks the response body", err)
+	}
+}

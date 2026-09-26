@@ -69,3 +69,11 @@ func TestCompareIgnoresJudgedRules(t *testing.T) {
 		t.Errorf("Compare = added %+v resolved %+v, want only the L6 add", d.Added, d.Resolved)
 	}
 }
+
+func TestIsJudgedNamesOnlyTheJudgedRules(t *testing.T) {
+	for rule, want := range map[string]bool{"J1": true, "J5": true, "L6": false, "L25": false, "L0": false, "": false} {
+		if got := IsJudged(rule); got != want {
+			t.Errorf("IsJudged(%q) = %v, want %v", rule, got, want)
+		}
+	}
+}

@@ -199,7 +199,7 @@ tier is a measured position rather than an aspiration:
 | **T0** | exists | the basics carry an error, or the Contract is incomplete |
 | **T1** | declared | basics clean **and** all six Contract entries present — the minimum for a new skill |
 | **T2** | safe | nothing unsafe left: no arithmetic in prose, guards actually invoked, scripts tested |
-| **T3** | verified | both official eval formats present — output quality and trigger accuracy — and, where a run was recorded, it passed |
+| **T3** | verified | both official eval formats present — output quality and trigger accuracy — and, where a run was recorded, it passed against the skill as it is now |
 
 Nothing applicable counts as satisfied — a knowledge skill with nothing to guard reaches
 T2, because having nothing to guard is a safe state. The Atlas carries this same legend

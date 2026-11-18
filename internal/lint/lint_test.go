@@ -551,6 +551,8 @@ func TestL25SkillThatDoesNotBeatItsAbsence(t *testing.T) {
 	mk("helping-not-at-all", withTwo+`,"without_skill":[{"id":1,"pass":true},{"id":2,"pass":true}]`)
 	mk("helping-broken", withTwo+`,"without_skill":[{"id":1}]`)
 	mk("helping-unpaired", `"queries":{"total":20,"correct":18},"without_skill":[{"id":1,"pass":true}]`)
+	// Only the easy case was run without the skill: comparing rates would compare different work.
+	mk("helping-other-cases", withTwo+`,"without_skill":[{"id":1,"pass":true}]`)
 
 	res := c.run("", nil)
 	if fs := pick(res, "L25", "p:helping-clearly"); len(fs) != 0 {
@@ -561,11 +563,26 @@ func TestL25SkillThatDoesNotBeatItsAbsence(t *testing.T) {
 		!anyContains(fs, "2 of 2") {
 		t.Errorf("an equal pass rate without the skill should warn with both counts: %+v", fs)
 	}
-	for _, n := range []string{"helping-broken", "helping-unpaired"} {
+	for _, n := range []string{"helping-broken", "helping-unpaired", "helping-other-cases"} {
 		fs := pick(res, "L25", "p:"+n)
 		if len(fs) == 0 || fs[0].Severity != Error {
 			t.Errorf("%s: without_skill must be well formed and paired with evals: %+v", n, fs)
 		}
+	}
+}
+
+func TestL25UnreadableSkillWarnsRatherThanFailingTheBuild(t *testing.T) {
+	c := newCorpus(t)
+	c.skill("p", "running-dangling", goodDesc, goodContract, "")
+	dir := filepath.Join(c.root, "plugins/p/skills/running-dangling")
+	c.write("plugins/p/skills/running-dangling/evals/results.json",
+		`{"skill_digest":"sha256:0000000000000000","evals":[{"id":1,"pass":true}]}`)
+	if err := os.Symlink(filepath.Join(c.root, "nowhere"), filepath.Join(dir, "references")); err != nil {
+		t.Fatal(err)
+	}
+	fs := pick(c.run("", nil), "L25", "p:running-dangling")
+	if len(fs) != 1 || fs[0].Severity != Warn || !anyContains(fs, "cannot fingerprint") {
+		t.Errorf("a skill mekiki cannot fingerprint is unverified, not a broken build: %+v", fs)
 	}
 }
 

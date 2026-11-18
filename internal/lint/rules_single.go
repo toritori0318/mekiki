@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 
@@ -515,19 +516,26 @@ func L25(s *skill.Skill, c *Context) []Finding {
 	var problems []string
 	rawEvals, hasEvals := doc["evals"]
 	passed, cases := 0, 0
+	var ids []string
 	if hasEvals {
 		var ps []string
-		passed, cases, ps = passCounts(rawEvals, "evals")
+		passed, cases, ids, ps = passCounts(rawEvals, "evals")
 		problems = append(problems, ps...)
 	}
 	rawWithout, hasWithout := doc["without_skill"]
 	passedWithout, casesWithout := 0, 0
 	if hasWithout {
 		var ps []string
-		passedWithout, casesWithout, ps = passCounts(rawWithout, "without_skill")
+		var idsWithout []string
+		passedWithout, casesWithout, idsWithout, ps = passCounts(rawWithout, "without_skill")
 		problems = append(problems, ps...)
-		if !hasEvals {
+		switch {
+		case !hasEvals:
 			problems = append(problems, "without_skill has no evals to compare against")
+		case !slices.Equal(ids, idsWithout):
+			// A rate over other cases compares different work, and the finding it would
+			// produce recommends deleting the skill.
+			problems = append(problems, "without_skill must record the same case ids as evals")
 		}
 	}
 	rawQueries, hasQueries := doc["queries"]
@@ -574,7 +582,9 @@ func L25(s *skill.Skill, c *Context) []Finding {
 	}
 	current, err := s.Digest()
 	if err != nil {
-		return append(out, Finding{"L25", Error, s.Key(), p, 1,
+		// Unverifiable rather than malformed: the file may be fine, so this blocks the tier
+		// without turning a build red over a dangling link.
+		return append(out, Finding{"L25", Warn, s.Key(), p, 1,
 			fmt.Sprintf("cannot fingerprint the skill to compare with skill_digest: %v", err)})
 	}
 	switch {
@@ -592,11 +602,12 @@ func L25(s *skill.Skill, c *Context) []Finding {
 	return out
 }
 
-// passCounts reads a list of {id, pass} records, as both evals and without_skill hold.
-func passCounts(raw any, field string) (passed, cases int, problems []string) {
+// passCounts reads a list of {id, pass} records, as both evals and without_skill hold, and
+// returns the sorted ids so two lists can be checked for covering the same cases.
+func passCounts(raw any, field string) (passed, cases int, ids, problems []string) {
 	list, ok := raw.([]any)
 	if !ok {
-		return 0, 0, []string{field + " is not an array"}
+		return 0, 0, nil, []string{field + " is not an array"}
 	}
 	for i, item := range list {
 		obj, ok := item.(map[string]any)
@@ -604,7 +615,9 @@ func passCounts(raw any, field string) (passed, cases int, problems []string) {
 			problems = append(problems, fmt.Sprintf("%s[%d] is not an object", field, i))
 			continue
 		}
-		if _, ok := obj["id"]; !ok {
+		if id, ok := obj["id"]; ok {
+			ids = append(ids, fmt.Sprint(id))
+		} else {
 			problems = append(problems, fmt.Sprintf("%s[%d] is missing id", field, i))
 		}
 		pass, ok := obj["pass"].(bool)
@@ -617,7 +630,8 @@ func passCounts(raw any, field string) (passed, cases int, problems []string) {
 			passed++
 		}
 	}
-	return passed, cases, problems
+	slices.Sort(ids)
+	return passed, cases, ids, problems
 }
 
 // ---- L15 / L17: flow.json (orchestration declaration) ----

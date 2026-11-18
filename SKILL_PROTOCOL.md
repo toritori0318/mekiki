@@ -513,7 +513,8 @@ Carrying the eval files proves the cases exist, not that they pass. Write what h
   before an edit is not evidence about the edited skill. The warning prints the current
   value. **Record it after a run, never instead of one**: pasting the new digest onto an
   old result is the same lie the field exists to catch.
-- **`without_skill` records the same cases run with the skill absent** (optional). When the
+- **`without_skill` records the same cases run with the skill absent** (optional; the case
+  ids must match `evals`, since a rate over other cases compares different work). When the
   pass rate with the skill does not exceed it, L25 warns that the skill does not beat its
   absence — the measured form of "if the model handles the task well without the skill,
   the skill is adding nothing" above.

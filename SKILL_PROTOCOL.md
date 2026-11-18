@@ -498,12 +498,26 @@ Carrying the eval files proves the cases exist, not that they pass. Write what h
 ```json
 {
   "ran_at": "2026-09-03",
+  "skill_digest": "sha256:6352b3e5db82dad2",
   "evals": [{"id": "case-1", "pass": true}, {"id": "case-2", "pass": false}],
+  "without_skill": [{"id": "case-1", "pass": false}, {"id": "case-2", "pass": false}],
   "queries": {"total": 20, "correct": 18}
 }
 ```
 
-Both keys are optional, so recording one kind of run is fine. **An absent file says
+`evals` and `queries` are both optional, so recording one kind of run is fine.
+
+- **`skill_digest` ties the result to the content it ran against.** It fingerprints every
+  file of the skill outside `evals/`. A result without it, or with a digest the skill has
+  since moved away from, is a warning and does not count toward tier 3 — a run recorded
+  before an edit is not evidence about the edited skill. The warning prints the current
+  value. **Record it after a run, never instead of one**: pasting the new digest onto an
+  old result is the same lie the field exists to catch.
+- **`without_skill` records the same cases run with the skill absent** (optional). When the
+  pass rate with the skill does not exceed it, L25 warns that the skill does not beat its
+  absence — the measured form of "if the model handles the task well without the skill,
+  the skill is adding nothing" above.
+ **An absent file says
 nothing and is never a finding** — this is what lets an existing corpus adopt the practice
 gradually. A file that exists must be well formed (error), and a failing case is a warning.
 Trigger accuracy is recorded but not judged: a pass mark would need a threshold, and there
@@ -523,7 +537,7 @@ concept; do not conflate them.
 | 0 — exists | No requirements (the same floor as SLSA L0) | — |
 | 1 — loads, and has a contract | No L1/L2/L3 errors **and** all six Contract entries (L4) | **The minimum for every new skill** |
 | 2 — deterministic and safe | No L6, L8, L9, L18 or L20 findings | **Required for high-risk skills** |
-| 3 — verified | Both official eval formats present, no L13 error, and no L25 finding — that is, any recorded run passed | Core skills and anything under an orchestrator |
+| 3 — verified | Both official eval formats present, no L13 error, and no L25 finding — that is, any recorded run passed, against the current content | Core skills and anything under an orchestrator |
 
 Semantics worth pinning down, because they are easy to misread:
 
@@ -575,7 +589,7 @@ on review. "New / pre-existing" refers to absence from / presence in the baselin
 | Existence of `flow.json` [MUST] | — | **unenforced** (orchestrators cannot be identified mechanically) |
 | Evals in an official format [MUST] | L13 | schema violation: error. Legacy `cases.json` or an unknown name: warn. **Absence: unenforced** |
 | Eval methodology (with/without, activation statistics) [MUST] | — | **unenforced** (delegated to `skill-creator`) |
-| Recorded eval outcome in `evals/results.json` [SHOULD] | L25 | malformed: error. A failing case: warn. **Absence: unenforced** |
+| Recorded eval outcome in `evals/results.json` [SHOULD] | L25 | malformed: error. A failing case, a missing or stale `skill_digest`, or no gain over `without_skill`: warn. **Absence: unenforced** |
 | Artifact paths, numeric SSOT `_ref` [MUST] | — | **unenforced** (review) |
 | Artifact IR, atomic deliver, simplification markers [SHOULD] | — | **unenforced** (review) |
 | Master data format 1-8 [MUST] | — | **unenforced** (PK/FK checks belong to the package's own script) |

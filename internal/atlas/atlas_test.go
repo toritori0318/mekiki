@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/toritori0318/mekiki/internal/lint"
+	"github.com/toritori0318/mekiki/internal/skill"
 )
 
 const goodDesc = "Drafts a report. Use this when the user asks for a report or a summary " +
@@ -167,10 +168,21 @@ func TestTierFallsBackWhenRecordedEvalsFail(t *testing.T) {
 	both(root, "building-report")
 	both(root, "building-summary")
 	both(root, "building-digest")
-	write(t, filepath.Join(root, "plugins/px/skills/building-summary/evals/results.json"),
-		`{"ran_at":"2026-09-03","evals":[{"id":1,"pass":false}]}`)
-	write(t, filepath.Join(root, "plugins/px/skills/building-digest/evals/results.json"),
-		`{"ran_at":"2026-09-03","evals":[{"id":1,"pass":true}]}`)
+	both(root, "building-memo")
+	record := func(name, passing string) {
+		dir := filepath.Join(root, "plugins/px/skills", name)
+		d, err := (&skill.Skill{Dir: dir}).Digest()
+		if err != nil {
+			t.Fatal(err)
+		}
+		write(t, filepath.Join(dir, "evals/results.json"),
+			`{"ran_at":"2026-09-03","skill_digest":"`+d+`","evals":[{"id":1,"pass":`+passing+`}]}`)
+	}
+	record("building-summary", "false")
+	record("building-digest", "true")
+	record("building-memo", "true")
+	// The skill changes after its run was recorded: the passing result no longer covers it.
+	write(t, filepath.Join(root, "plugins/px/skills/building-memo/references/notes.md"), "edited")
 
 	m, err := Build([]string{root}, "", "", "")
 	if err != nil {
@@ -188,6 +200,10 @@ func TestTierFallsBackWhenRecordedEvalsFail(t *testing.T) {
 	}
 	if got := byKey["px:building-digest"]; got.Tier != 3 || got.EvalResult != "passed" {
 		t.Errorf("a passing run stays verified: tier=%d result=%q", got.Tier, got.EvalResult)
+	}
+	if got := byKey["px:building-memo"]; got.Tier != 2 || got.EvalResult != "failing" {
+		t.Errorf("a run recorded against an earlier version must not verify the skill: "+
+			"tier=%d result=%q", got.Tier, got.EvalResult)
 	}
 }
 

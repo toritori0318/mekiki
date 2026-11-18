@@ -256,6 +256,26 @@ corpus size at the time that decision was made.
     holds for all five. Fixtures are synthetic, so nothing from a
     real corpus enters the repository.
 
+28. **A recorded eval result names the content it ran against (`skill_digest`, L25)** —
+    decision 18 made tier 3 read a result instead of the presence of files, but nothing tied
+    that result to the skill as it is now: one passing run kept a skill verified through
+    every later edit. A verification is valid for one patch only, so the file records a
+    digest of every file outside `evals/` and L25 warns when it is absent or no longer
+    matches. The warning prints the current value, so no second tool is needed to record
+    it. An absent digest warns rather than staying silent — unlike an absent file, which
+    claims nothing, a file without a digest claims a verification it cannot back. The
+    known failure mode is pasting the printed digest without re-running; the conventions
+    and the audit skill name it as the wrong repair, which is as far as a linter can see.
+
+29. **A skill that does not beat its absence is reported (`without_skill`, L25)** — the
+    conventions already said a skill the model does without adds nothing, and the eval
+    methodology already runs every case with and without the skill, but the outcome had
+    nowhere to go. `without_skill` records the second run; a pass rate with the skill no
+    higher than without it is a warning that names deletion as the repair. This is the one
+    finding that argues for less prose rather than different prose. The comparison is the
+    pass rate only — time and tokens vary too much between runs for a single recorded
+    figure to decide anything.
+
 ## Rejected
 
 - **Delegating validation to the official `skills-ref`** — it states it is "intended for

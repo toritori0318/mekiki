@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/toritori0318/mekiki/internal/skill"
 )
 
 // The fixtures below are reduced copies of defects observed in a real corpus during the
@@ -469,21 +471,34 @@ func TestL13OfficialEvalFormats(t *testing.T) {
 
 func TestL25EvalResults(t *testing.T) {
 	c := newCorpus(t)
+	digests := map[string]string{}
 	mk := func(name, results string) {
 		c.skill("p", name, goodDesc, goodContract, "")
+		dir := filepath.Join(c.root, "plugins/p/skills", name)
+		d, err := (&skill.Skill{Dir: dir}).Digest()
+		if err != nil {
+			t.Fatal(err)
+		}
+		digests[name] = d
 		if results != "" {
-			c.write(filepath.Join("plugins/p/skills", name, "evals/results.json"), results)
+			c.write(filepath.Join("plugins/p/skills", name, "evals/results.json"),
+				strings.ReplaceAll(results, "DIGEST", d))
 		}
 	}
 	mk("running-no-results", "")
-	mk("running-all-pass",
-		`{"ran_at":"2026-09-03","evals":[{"id":"case-1","pass":true},{"id":"case-2","pass":true}]}`)
-	mk("running-with-failures",
-		`{"ran_at":"2026-09-03","evals":[{"id":"case-1","pass":true},{"id":"case-2","pass":false}]}`)
-	mk("running-queries-only", `{"ran_at":"2026-09-03","queries":{"total":20,"correct":18}}`)
+	mk("running-all-pass", `{"ran_at":"2026-09-03","skill_digest":"DIGEST",`+
+		`"evals":[{"id":"case-1","pass":true},{"id":"case-2","pass":true}]}`)
+	mk("running-with-failures", `{"ran_at":"2026-09-03","skill_digest":"DIGEST",`+
+		`"evals":[{"id":"case-1","pass":true},{"id":"case-2","pass":false}]}`)
+	mk("running-queries-only",
+		`{"ran_at":"2026-09-03","skill_digest":"DIGEST","queries":{"total":20,"correct":18}}`)
+	mk("running-no-digest", `{"ran_at":"2026-09-03","evals":[{"id":"case-1","pass":true}]}`)
+	mk("running-stale", `{"ran_at":"2026-09-03","skill_digest":"sha256:0000000000000000",`+
+		`"evals":[{"id":"case-1","pass":true}]}`)
 	mk("running-broken-json", `{"evals":[`)
-	mk("running-bad-schema", `{"evals":[{"id":"case-1"}]}`)
-	mk("running-empty-report", `{"ran_at":"2026-09-03"}`)
+	mk("running-bad-schema", `{"skill_digest":"DIGEST","evals":[{"id":"case-1"}]}`)
+	mk("running-bad-digest", `{"skill_digest":5,"evals":[{"id":"case-1","pass":true}]}`)
+	mk("running-empty-report", `{"ran_at":"2026-09-03","skill_digest":"DIGEST"}`)
 
 	res := c.run("", nil)
 	for _, n := range []string{"running-no-results", "running-all-pass", "running-queries-only"} {
@@ -498,10 +513,58 @@ func TestL25EvalResults(t *testing.T) {
 	if !anyContains(fs, "1 of 2") {
 		t.Errorf("the message should count the failures: %+v", fs)
 	}
-	for _, n := range []string{"running-broken-json", "running-bad-schema", "running-empty-report"} {
+	// A result is evidence only for the content it ran against. Both messages hand over the
+	// value to record, so the repair needs no second tool.
+	for n, want := range map[string]string{
+		"running-no-digest": "does not record skill_digest",
+		"running-stale":     "recorded against a different version",
+	} {
+		fs := pick(res, "L25", "p:"+n)
+		if len(fs) != 1 || fs[0].Severity != Warn || !anyContains(fs, want) ||
+			!anyContains(fs, digests[n]) {
+			t.Errorf("%s: want one warning saying %q and naming %s: %+v", n, want, digests[n], fs)
+		}
+	}
+	for _, n := range []string{"running-broken-json", "running-bad-schema", "running-bad-digest",
+		"running-empty-report"} {
 		fs := pick(res, "L25", "p:"+n)
 		if len(fs) == 0 || fs[0].Severity != Error {
 			t.Errorf("%s: a results file that exists must be well formed: %+v", n, fs)
+		}
+	}
+}
+
+func TestL25SkillThatDoesNotBeatItsAbsence(t *testing.T) {
+	c := newCorpus(t)
+	mk := func(name, rest string) {
+		c.skill("p", name, goodDesc, goodContract, "")
+		dir := filepath.Join(c.root, "plugins/p/skills", name)
+		d, err := (&skill.Skill{Dir: dir}).Digest()
+		if err != nil {
+			t.Fatal(err)
+		}
+		c.write(filepath.Join("plugins/p/skills", name, "evals/results.json"),
+			`{"skill_digest":"`+d+`",`+rest+`}`)
+	}
+	withTwo := `"evals":[{"id":1,"pass":true},{"id":2,"pass":true}]`
+	mk("helping-clearly", withTwo+`,"without_skill":[{"id":1,"pass":true},{"id":2,"pass":false}]`)
+	mk("helping-not-at-all", withTwo+`,"without_skill":[{"id":1,"pass":true},{"id":2,"pass":true}]`)
+	mk("helping-broken", withTwo+`,"without_skill":[{"id":1}]`)
+	mk("helping-unpaired", `"queries":{"total":20,"correct":18},"without_skill":[{"id":1,"pass":true}]`)
+
+	res := c.run("", nil)
+	if fs := pick(res, "L25", "p:helping-clearly"); len(fs) != 0 {
+		t.Errorf("a skill that beats its absence should pass: %+v", fs)
+	}
+	fs := pick(res, "L25", "p:helping-not-at-all")
+	if len(fs) != 1 || fs[0].Severity != Warn || !anyContains(fs, "does not beat its absence") ||
+		!anyContains(fs, "2 of 2") {
+		t.Errorf("an equal pass rate without the skill should warn with both counts: %+v", fs)
+	}
+	for _, n := range []string{"helping-broken", "helping-unpaired"} {
+		fs := pick(res, "L25", "p:"+n)
+		if len(fs) == 0 || fs[0].Severity != Error {
+			t.Errorf("%s: without_skill must be well formed and paired with evals: %+v", n, fs)
 		}
 	}
 }

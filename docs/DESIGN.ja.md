@@ -382,7 +382,7 @@ severity の「新規/既存」は baseline.json（初回 `--update-baseline` �
 | **L20** | 副作用スキルに `disable-model-invocation: true` が無い（§4.6。横断） | 課金の検出語 × `disable-model-invocation`。**除外**: flow.json の委譲先（フラグは programmatic invocation を止めるため付けるとオーケストレータが呼べなくなる）、`config.guards` に列挙されたガードスキル自身（リスクを説明するが実行しない）。外部公開・破壊的書込は検出語が実測68%に当たるため対象外 | warn（ヒューリスティック。§8 suppress 可） |
 | **L19** | SKILL.md 本文のサイズ規律（§4.10） | frontmatter を除く本文が **500行超** または **推定トークン 5,000超**（CJK 1字=1.2トークン概算）。指摘に references/・scripts/ への分割指示を含む | warn（サイズは「必要な情報だけか」の代理指標にすぎないため。§8 suppress 可） |
 | **L21** | `requires` / `depends_on` の参照先スキルが存在しない（横断） | 発見済みの全スキル名および `plugin:name` キーと照合。`config.guards` のガード名は存在扱い（L8 が同じ宣言を要求するため、両立不能にしてはならない） | warn（資産の一部だけを lint した場合、他プラグインへの正当な参照が解決できないため） |
-| **L25** | eval の実行結果 | `evals/results.json` を読む。`evals[{id, pass}]` と `queries{total, correct}` はどちらも任意だが最低1つは必要。不在は無言。発火精度は記録するが合否判定はしない | 形式不適合: error。失敗ケースあり: warn。どちらも Tier 3 を阻む |
+| **L25** | eval の実行結果 | `evals/results.json` を読む。`evals[{id, pass}]` と `queries{total, correct}` はどちらも任意だが最低1つは必要。`skill_digest` はスキルの今の digest（`evals/` の外の全ファイル）と一致すること。任意の `without_skill[{id, pass}]` は `evals` と対で置く。不在は無言。発火精度は記録するが合否判定はしない | 形式不適合: error。失敗ケースあり・digest の欠落か不一致・合格率が `without_skill` 以下: warn。どれも Tier 3 を阻む |
 | **L24** | あるフェーズの output をどの後続フェーズも消費しない | `flow.json` の outputs を後続フェーズの inputs と照合。最終フェーズは対象外（その output はワークフローの成果物） | warn（途中のフェーズが分岐の終端になることは正当にあり得るため） |
 | **L23** | 2つ以上のスキルが同じ引用トリガー句を主張している（横断） | description ＋ `when_to_use` 中の引用句（`「」`・`『』`・`"`・`“”`）を4ルーン以上で比較。語が空白で区切られる言語では1語のみの句を除外し、`${` を含む句も除外する。グループ内に `canonical`/`duplicate_of` 宣言があれば黙る | warn（発火判定はモデル側にあり、これは証拠であって証明ではないため） |
 | **L22** | スキル自身のディレクトリへの Markdown リンクが解決しない | リンク先が `references/`・`scripts/`・`assets/`・`evals/` 配下のもののみ。アンカーは除去し、ディレクトリも解決とみなす。本文中の**単なるパス言及は検査しない** —— 実測では例示か他スキルのファイルであり、ローカルファイルの主張ではなかった | warn（`references/` のファイルは生成物で未コミットの場合があるため） |
@@ -467,7 +467,8 @@ mekiki new NAME [--out DIR] [--type action|knowledge|util]
 | L22 | 壊れたリンク・実在ファイル・ディレクトリ・アンカー付き・重複リンク・散文のパス言及 | warn / なし / なし / なし / 重複排除 / なし |
 | L23 | 2スキルが共有する句・短い句・英単語1語・`${VAR}` を含む句・canonical 宣言・vendor 重複 | 各 warn / なし / なし / なし / なし / 1件のみ |
 | L24 | 誰も読まない中間 output・全て消費されるフロー・最終フェーズの output・壊れた flow.json | warn / なし / なし / なし |
-| L25 | results 不在・全件 pass・失敗ケースあり・queries のみ・壊れた JSON・何も測っていない報告 | なし / なし / warn / なし / error / error |
+| L25 | results 不在・全件 pass・失敗ケースあり・queries のみ・壊れた JSON・何も測っていない報告・digest なし・古い digest・文字列でない digest | なし / なし / warn / なし / error / error / warn / warn / error |
+| L25 | `without_skill` が下回る・同じ・壊れている・`evals` が無い | なし / warn / error / error |
 | パーサ | `building-context-from-handover`（description がブロックスカラー） | L2/L3 で誤検知しない |
 
 ### 9.2 完了条件

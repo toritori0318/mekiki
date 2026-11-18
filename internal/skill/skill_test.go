@@ -101,3 +101,67 @@ func repeat(s string, n int) string {
 	}
 	return string(out)
 }
+
+func TestDigestFollowsTheSkillButNotItsEvals(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "drafting-plan")
+	write(t, filepath.Join(dir, "SKILL.md"), "---\nname: drafting-plan\ndescription: x\n---\n")
+	write(t, filepath.Join(dir, "references/guide.md"), "guide")
+	write(t, filepath.Join(dir, "evals/evals.json"), "{}")
+	s := &Skill{Dir: dir}
+
+	digest := func() string {
+		t.Helper()
+		d, err := s.Digest()
+		if err != nil {
+			t.Fatal(err)
+		}
+		return d
+	}
+	first := digest()
+	if first == "" || first != digest() {
+		t.Fatalf("the digest must be stable for unchanged content: %q", first)
+	}
+
+	write(t, filepath.Join(dir, "evals/results.json"), `{"evals":[]}`)
+	write(t, filepath.Join(dir, ".DS_Store"), "noise")
+	if got := digest(); got != first {
+		t.Errorf("evals/ and dotfiles must not move the digest: %q -> %q", first, got)
+	}
+
+	for _, change := range []string{"references/guide.md", "SKILL.md", "scripts/calc.py"} {
+		before := digest()
+		write(t, filepath.Join(dir, change), "changed")
+		if digest() == before {
+			t.Errorf("changing %s must move the digest", change)
+		}
+	}
+}
+
+func TestDigestThroughSymlinksAndAcrossLineEndings(t *testing.T) {
+	root := t.TempDir()
+	real := filepath.Join(root, "store/drafting-plan")
+	write(t, filepath.Join(real, "SKILL.md"), "---\nname: drafting-plan\n---\nbody\n")
+	write(t, filepath.Join(root, "shared/guide.md"), "guide")
+	if err := os.Symlink(filepath.Join(root, "shared"), filepath.Join(real, "references")); err != nil {
+		t.Fatal(err)
+	}
+	linked := filepath.Join(root, "drafting-plan")
+	if err := os.Symlink(real, linked); err != nil {
+		t.Fatal(err)
+	}
+
+	viaLink, err := (&Skill{Dir: linked}).Digest()
+	if err != nil {
+		t.Fatalf("a skill reached through a symlink must still fingerprint: %v", err)
+	}
+	direct, err := (&Skill{Dir: real}).Digest()
+	if err != nil || viaLink != direct {
+		t.Errorf("the link must not change the digest: %q vs %q (%v)", viaLink, direct, err)
+	}
+
+	write(t, filepath.Join(real, "SKILL.md"), "---\r\nname: drafting-plan\r\n---\r\nbody\r\n")
+	if crlf, _ := (&Skill{Dir: real}).Digest(); crlf != direct {
+		t.Errorf("a CRLF checkout of the same text must not read as an edit: %q vs %q", crlf, direct)
+	}
+}

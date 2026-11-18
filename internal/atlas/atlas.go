@@ -340,8 +340,8 @@ func tierOf(s *skill.Skill, ct skill.Contract, fs []lint.Finding) int {
 }
 
 // evalResult summarises evals/results.json for the dossier. Any L25 finding — a failing
-// case or a malformed file — reads as "failing": in both situations the recorded run does
-// not support calling the skill verified.
+// case, a malformed file, or a run recorded against another version of the skill — reads
+// as "failing": in each the recorded run does not support calling the skill verified.
 func evalResult(s *skill.Skill, fs []lint.Finding) string {
 	if !s.HasFile(filepath.Join("evals", "results.json")) {
 		return ""

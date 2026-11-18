@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 
@@ -489,6 +490,15 @@ func checkQueries(raw []byte) []string {
 // gradually. A file that exists must be well formed, on the same reasoning as L13 and L15:
 // having written it down, get it right.
 //
+// A result is evidence only for the content it ran against, so the file carries the skill's
+// digest at the time of the run. Without that, a run recorded months ago keeps a skill at
+// tier 3 through every later edit. The digest comes from mekiki itself and every finding
+// that asks for it prints the current value, so recording it needs no other tool.
+//
+// The protocol says a skill the model does without is adding nothing. `without_skill`
+// records the same cases run with the skill absent, and a skill whose pass rate does not
+// exceed that is reported as a deletion candidate. Optional, like every key here.
+//
 // Trigger accuracy is recorded but not judged. A pass mark for it would need a threshold,
 // and there is no measurement here that could set one honestly.
 
@@ -504,31 +514,28 @@ func L25(s *skill.Skill, c *Context) []Finding {
 	}
 
 	var problems []string
-	failing, cases := 0, 0
 	rawEvals, hasEvals := doc["evals"]
+	passed, cases := 0, 0
+	var ids []string
 	if hasEvals {
-		list, ok := rawEvals.([]any)
-		if !ok {
-			problems = append(problems, "evals is not an array")
-		}
-		for i, item := range list {
-			obj, ok := item.(map[string]any)
-			if !ok {
-				problems = append(problems, fmt.Sprintf("evals[%d] is not an object", i))
-				continue
-			}
-			if _, ok := obj["id"]; !ok {
-				problems = append(problems, fmt.Sprintf("evals[%d] is missing id", i))
-			}
-			pass, ok := obj["pass"].(bool)
-			if !ok {
-				problems = append(problems, fmt.Sprintf("evals[%d].pass is not a boolean", i))
-				continue
-			}
-			cases++
-			if !pass {
-				failing++
-			}
+		var ps []string
+		passed, cases, ids, ps = passCounts(rawEvals, "evals")
+		problems = append(problems, ps...)
+	}
+	rawWithout, hasWithout := doc["without_skill"]
+	passedWithout, casesWithout := 0, 0
+	if hasWithout {
+		var ps []string
+		var idsWithout []string
+		passedWithout, casesWithout, idsWithout, ps = passCounts(rawWithout, "without_skill")
+		problems = append(problems, ps...)
+		switch {
+		case !hasEvals:
+			problems = append(problems, "without_skill has no evals to compare against")
+		case !slices.Equal(ids, idsWithout):
+			// A rate over other cases compares different work, and the finding it would
+			// produce recommends deleting the skill.
+			problems = append(problems, "without_skill must record the same case ids as evals")
 		}
 	}
 	rawQueries, hasQueries := doc["queries"]
@@ -544,6 +551,10 @@ func L25(s *skill.Skill, c *Context) []Finding {
 			}
 		}
 	}
+	recorded, hasDigest := doc["skill_digest"]
+	if _, ok := recorded.(string); hasDigest && !ok {
+		problems = append(problems, "skill_digest is not a string")
+	}
 	if !hasEvals && !hasQueries {
 		problems = append(problems,
 			"reports neither evals nor queries (the file records a run that measured nothing)")
@@ -555,12 +566,72 @@ func L25(s *skill.Skill, c *Context) []Finding {
 		return []Finding{{"L25", Error, s.Key(), p, 1,
 			"results schema violation: " + strings.Join(problems, "; ")}}
 	}
-	if failing > 0 {
-		return []Finding{{"L25", Warn, s.Key(), p, 1,
+	var out []Finding
+	if failing := cases - passed; failing > 0 {
+		out = append(out, Finding{"L25", Warn, s.Key(), p, 1,
 			fmt.Sprintf("eval results report %d of %d cases failing — the skill is not in a "+
-				"verified state", failing, cases)}}
+				"verified state", failing, cases)})
 	}
-	return nil
+	// Cross-multiplied so the comparison stays exact; both counts are non-zero here.
+	if cases > 0 && casesWithout > 0 && passed*casesWithout <= passedWithout*cases {
+		out = append(out, Finding{"L25", Warn, s.Key(), p, 1,
+			fmt.Sprintf("the skill does not beat its absence (%d of %d cases pass with it, "+
+				"%d of %d without) — it adds context cost and nothing measured; consider "+
+				"deleting it or growing a neighbouring skill instead",
+				passed, cases, passedWithout, casesWithout)})
+	}
+	current, err := s.Digest()
+	if err != nil {
+		// Unverifiable rather than malformed: the file may be fine, so this blocks the tier
+		// without turning a build red over a dangling link.
+		return append(out, Finding{"L25", Warn, s.Key(), p, 1,
+			fmt.Sprintf("cannot fingerprint the skill to compare with skill_digest: %v", err)})
+	}
+	switch {
+	case !hasDigest:
+		out = append(out, Finding{"L25", Warn, s.Key(), p, 1,
+			"results.json does not record skill_digest, so nothing shows the run was against this " +
+				"version of the skill — rerun if the skill changed since, then record " +
+				`"skill_digest": "` + current + `"`})
+	case recorded != current:
+		out = append(out, Finding{"L25", Warn, s.Key(), p, 1,
+			fmt.Sprintf("eval results were recorded against a different version of the skill "+
+				"(%s; it is now %s) — rerun the evals and record the new skill_digest",
+				recorded, current)})
+	}
+	return out
+}
+
+// passCounts reads a list of {id, pass} records, as both evals and without_skill hold, and
+// returns the sorted ids so two lists can be checked for covering the same cases.
+func passCounts(raw any, field string) (passed, cases int, ids, problems []string) {
+	list, ok := raw.([]any)
+	if !ok {
+		return 0, 0, nil, []string{field + " is not an array"}
+	}
+	for i, item := range list {
+		obj, ok := item.(map[string]any)
+		if !ok {
+			problems = append(problems, fmt.Sprintf("%s[%d] is not an object", field, i))
+			continue
+		}
+		if id, ok := obj["id"]; ok {
+			ids = append(ids, fmt.Sprint(id))
+		} else {
+			problems = append(problems, fmt.Sprintf("%s[%d] is missing id", field, i))
+		}
+		pass, ok := obj["pass"].(bool)
+		if !ok {
+			problems = append(problems, fmt.Sprintf("%s[%d].pass is not a boolean", field, i))
+			continue
+		}
+		cases++
+		if pass {
+			passed++
+		}
+	}
+	slices.Sort(ids)
+	return passed, cases, ids, problems
 }
 
 // ---- L15 / L17: flow.json (orchestration declaration) ----

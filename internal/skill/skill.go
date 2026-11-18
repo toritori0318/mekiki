@@ -1,6 +1,10 @@
 package skill
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -42,6 +46,61 @@ func (s *Skill) HasDir(rel string) bool {
 func (s *Skill) HasFile(rel string) bool {
 	fi, err := os.Stat(filepath.Join(s.Dir, rel))
 	return err == nil && !fi.IsDir()
+}
+
+// Digest fingerprints everything an eval run exercises: every file under the skill except
+// evals/, which holds the cases and the recorded outcome rather than the skill under test.
+// A recorded result is only evidence for the content it ran against, so L25 compares this
+// value with the one the result carries. Dotfiles are skipped and line endings normalised:
+// editor litter or a CRLF checkout would otherwise mark a result stale with nothing changed.
+// Symlinks are followed, since a corpus is often reached through one; a link back into a
+// directory already walked is skipped rather than looped on.
+func (s *Skill) Digest() (string, error) {
+	h := sha256.New()
+	if err := digestDir(h, s.Dir, "", map[string]bool{}); err != nil {
+		return "", err
+	}
+	return "sha256:" + hex.EncodeToString(h.Sum(nil))[:16], nil
+}
+
+func digestDir(h io.Writer, dir, prefix string, seen map[string]bool) error {
+	real, err := filepath.EvalSymlinks(dir)
+	if err != nil {
+		return err
+	}
+	if seen[real] {
+		return nil
+	}
+	seen[real] = true
+	entries, err := os.ReadDir(real) // sorted by name, so the digest is deterministic
+	if err != nil {
+		return err
+	}
+	for _, e := range entries {
+		rel := prefix + e.Name()
+		if strings.HasPrefix(e.Name(), ".") || rel == "evals" {
+			continue
+		}
+		p := filepath.Join(real, e.Name())
+		fi, err := os.Stat(p) // follows a symlink to whatever it names
+		if err != nil {
+			return err
+		}
+		if fi.IsDir() {
+			if err := digestDir(h, p, rel+"/", seen); err != nil {
+				return err
+			}
+			continue
+		}
+		raw, err := os.ReadFile(p)
+		if err != nil {
+			return err
+		}
+		h.Write([]byte(rel + "\x00"))
+		h.Write(bytes.ReplaceAll(raw, []byte("\r\n"), []byte("\n")))
+		h.Write([]byte{0})
+	}
+	return nil
 }
 
 // Discover enumerates directories containing a SKILL.md under the given paths.

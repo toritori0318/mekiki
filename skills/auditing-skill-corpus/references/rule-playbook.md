@@ -114,6 +114,10 @@ version is not.
 - **L25, recorded eval results.** A failing case is not a lint defect to be edited away: it is
   the eval doing its job. Fix the skill, re-run through `skill-creator`, and record the new
   outcome. Deleting `results.json` to reach tier 3 is the one repair that is always wrong.
+  A missing or stale `skill_digest` means the result predates the skill as it is now: re-run,
+  then record the digest the finding prints. Pasting that digest onto the old result without
+  a run is the same wrong repair in another form. "Does not beat its absence" is a question
+  for the user — delete the skill, or grow a neighbouring one — not something to tune away.
 
 ## Copies and leftovers — L7, L10
 
